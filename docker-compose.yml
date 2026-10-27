@@ -1,0 +1,270 @@
+# 42 Studio — production stack for a single EC2 host (api.42studio.fit).
+#
+# Five containers, no Supabase: Caddy (TLS + the static SPA + /api proxy + /media
+# proxy), the FastAPI backend, the Remotion render sidecar, Postgres 17 + pgvector,
+# and MinIO (S3-compatible object store for media), plus the one-shot minio-init
+# that prepares MinIO. The database is the `postgres` service below and media
+# objects live in the `minio` service. The `studio-data` volume keeps the local
+# working files (renders, caches, and files written before MinIO). The backend
+# and remotion containers SHARE that volume at the identical path
+# /app/backend/data: remotion resolves the tree by relative path and
+# reads/writes the same files the backend produces.
+#
+# Config comes from ./.env (repo root): compose auto-loads it for ${...}
+# interpolation AND passes it to the backend as env_file.
+#
+# Volumes carry FIXED names, so the data never depends on the checkout directory
+# or the project name. `docker compose down` keeps them; only `down -v` or
+# `docker volume rm` destroys them.
+
+name: studio42
+
+x-logging: &default-logging
+  # Docker's json-file driver grows without bound, and the backend runs uvicorn
+  # with access_log=True plus 16 pollers. On a single box that fills the disk.
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  backend:
+    build: ./backend
+    container_name: studio-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Docker-specific overrides — these WIN over .env.
+    environment:
+      API_HOST: "0.0.0.0"
+      AUTO_RELOAD: "false"
+      USE_CLIP: "true"
+      # Reach the remotion sidecar by service name on the compose network.
+      REMOTION_BASE_URL: "http://remotion:3001"
+      # Public origin (used for CORS + reminder-email links). From ./.env.
+      CORS_ORIGINS: "${PUBLIC_URL:?set PUBLIC_URL in .env}"
+      APP_BASE_URL: "${PUBLIC_URL}"
+      # Service-account auth for Vertex/Veo/Gemini + GCS.
+      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa.json"
+      # Pinned true so a .env copied down from a dev machine (where it is set
+      # false) can never disarm the server's background workers.
+      POLLERS_ENABLED: "true"
+      # The database is the postgres service on the compose network, pinned
+      # here so a .env pointing at Supabase can never reach production.
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_SSLMODE: "disable"
+      # Media goes to the minio service, pinned for the same reason. URLs are
+      # presigned against the internal endpoint and handed to browsers under
+      # <PUBLIC_URL>/media, which Caddy proxies back to MinIO with Host
+      # minio:9000, so the signature still matches.
+      STORAGE_BACKEND: "s3"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_PUBLIC_BASE_URL: "${PUBLIC_URL}/media"
+      # The least-privilege user minio-init creates, never the root account:
+      # the access key is visible in every presigned URL.
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?set S3_ACCESS_KEY in .env}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?set S3_SECRET_KEY in .env}"
+      # env_file passes the whole .env, MinIO's root pair included. Blank it
+      # here so the backend, and every process it spawns, never holds the
+      # admin account (minio and minio-init get it by interpolation).
+      MINIO_ROOT_USER: ""
+      MINIO_ROOT_PASSWORD: ""
+      # Must equal MINIO_SITE_REGION below: a URL presigned for another region
+      # is refused with a 400.
+      S3_REGION: "us-east-1"
+    # Caddy reaches the backend over the compose network; loopback only so it
+    # can be curled on the box while debugging.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - studio-data:/app/backend/data
+      - ./secrets:/secrets:ro
+    depends_on:
+      remotion:
+        condition: service_started
+      # app/db.py opens the pool with wait=True and raises when nothing answers,
+      # so the backend must not start before the schema is loaded.
+      postgres:
+        condition: service_healthy
+      # An upload that can't reach MinIO falls back to local disk, so start
+      # only once MinIO answers and minio-init has made the buckets and the
+      # app user.
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  remotion:
+    build: ./services/remotion
+    container_name: studio-remotion
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3001"
+    # SAME volume + SAME mount path as backend — this is the file handoff.
+    volumes:
+      - studio-data:/app/backend/data
+    logging: *default-logging
+
+  postgres:
+    # pgvector/pgvector is the official postgres image + the `vector` extension.
+    # pg17 matches the Supabase server the schema was dumped from. Do NOT bump to
+    # pg18: that image moved PGDATA, so the volume would mount over the wrong
+    # directory and every restart would look like a fresh database.
+    image: pgvector/pgvector:pg17
+    container_name: studio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${DB_USER:?set DB_USER in .env}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?set DB_PASSWORD in .env}"
+      POSTGRES_DB: "${DB_NAME:?set DB_NAME in .env}"
+    volumes:
+      - studio-db:/var/lib/postgresql/data
+      # Runs ONCE, only when the data volume is empty. Editing schema.sql later
+      # changes nothing; apply by hand with
+      #   docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 < db/schema.sql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+    # HNSW index builds use shared memory; Docker's 64MB default is too small.
+    shm_size: "256mb"
+    healthcheck:
+      # TCP probe on purpose: during first init the entrypoint runs a socket-only
+      # temporary server, so this stays red until schema.sql has finished.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    # No `ports:` — only the backend talks to it, over the compose network.
+    logging: *default-logging
+
+  minio:
+    # Community build of MinIO (the official minio/minio images can no longer be
+    # pulled anonymously). Pinned: never :latest.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    container_name: studio-minio
+    restart: unless-stopped
+    command: ["server", "/data"]
+    environment:
+      # Admin only (minio-init). The backend signs with S3_ACCESS_KEY.
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}"
+      MINIO_BROWSER: "off"
+      MINIO_SITE_REGION: "us-east-1"
+    volumes:
+      - studio-minio:/data
+    healthcheck:
+      # curl ships in the image. `mc ready` would keep retrying past the timeout
+      # while MinIO is down instead of failing.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    # No `ports:`. The backend uses minio:9000 on the compose network, and
+    # browsers only reach object GET/HEAD through Caddy's /media route.
+    logging: *default-logging
+
+  minio-init:
+    # One-shot setup with the mc client bundled in the MinIO image: the four
+    # buckets, the anonymous GetObject-only policy on the Instagram bucket, and
+    # the least-privilege user the backend signs with. Every step is idempotent
+    # and it runs again on each `up`, so a changed S3_SECRET_KEY is applied too.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    container_name: studio-minio-init
+    restart: "no"
+    # The image declares VOLUME /data; without this every new minio-init
+    # container would leave an empty anonymous volume behind.
+    tmpfs:
+      - /data
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?set S3_ACCESS_KEY in .env}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?set S3_SECRET_KEY in .env}"
+      # Same variables and defaults as backend/app/config.py.
+      PRODUCER_ASSETS_BUCKET: "${PRODUCER_ASSETS_BUCKET:-producer-assets}"
+      PRODUCER_MEDIA_BUCKET: "${PRODUCER_MEDIA_BUCKET:-producer-media}"
+      BRAND_DOCS_BUCKET: "${BRAND_DOCS_BUCKET:-brand-docs}"
+      APPROVED_MEDIA_BUCKET: "${APPROVED_MEDIA_BUCKET:-approved-instagram}"
+    entrypoint: ["/bin/sh", "-euc"]
+    # $$ is a literal $ for the shell (compose would substitute a single one).
+    command:
+      - |
+        if [ "$$S3_ACCESS_KEY" = "$$MINIO_ROOT_USER" ]; then
+          echo "S3_ACCESS_KEY must differ from MINIO_ROOT_USER: the backend needs its own least-privilege user" >&2
+          exit 1
+        fi
+        mc alias set studio http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null
+        buckets="$$PRODUCER_ASSETS_BUCKET $$PRODUCER_MEDIA_BUCKET $$BRAND_DOCS_BUCKET $$APPROVED_MEDIA_BUCKET"
+        for b in $$buckets; do
+          mc mb --ignore-existing "studio/$$b"
+        done
+        # Anonymous GetObject and nothing else, so public keys can't be listed.
+        # Not `mc anonymous set download`: that canned policy adds ListBucket.
+        cat > /tmp/public.json <<EOF
+        {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::$$APPROVED_MEDIA_BUCKET/*"]}]}
+        EOF
+        mc anonymous set-json /tmp/public.json "studio/$$APPROVED_MEDIA_BUCKET"
+        # The other three are private. Reset them on every run, so an anonymous
+        # policy someone put on one does not outlive the next deploy.
+        for b in $$PRODUCER_ASSETS_BUCKET $$PRODUCER_MEDIA_BUCKET $$BRAND_DOCS_BUCKET; do
+          mc anonymous set none "studio/$$b"
+        done
+        # The backend's own rights: objects in the four buckets, plus creating
+        # them and setting the public policy on the Instagram bucket, so its
+        # startup bootstrap still works if a bucket is ever missing. The Deny
+        # stops it minting its own access keys: MinIO lets any user do that
+        # unless denied, and such a key outlives an S3_SECRET_KEY rotation.
+        resources=""
+        for b in $$buckets; do
+          resources="$$resources\"arn:aws:s3:::$$b\",\"arn:aws:s3:::$$b/*\","
+        done
+        cat > /tmp/studio-app.json <<EOF
+        {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:ListBucket","s3:GetBucketLocation","s3:CreateBucket","s3:AbortMultipartUpload","s3:ListMultipartUploadParts"],"Resource":[$${resources%,}]},{"Effect":"Allow","Action":["s3:PutBucketPolicy","s3:GetBucketPolicy"],"Resource":["arn:aws:s3:::$$APPROVED_MEDIA_BUCKET"]},{"Effect":"Deny","Action":["admin:*"]}]}
+        EOF
+        mc admin policy create studio studio-app /tmp/studio-app.json
+        # Adding an existing user just updates its secret key.
+        mc admin user add studio "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY"
+        mc admin policy attach studio studio-app --user "$$S3_ACCESS_KEY"
+        echo "minio-init: buckets, public policy and app user are in place"
+    logging: *default-logging
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: studio-web
+    restart: unless-stopped
+    environment:
+      DOMAIN: "${DOMAIN:?set DOMAIN in .env}"
+      ACME_EMAIL: "${ACME_EMAIL:?set ACME_EMAIL in .env}"
+    ports:
+      - "80:80"
+      - "443:443"
+      # HTTP/3 (QUIC): Caddy serves it on 443/udp by itself. It saves round trips
+      # on the long link to the Gulf; browsers fall back to TCP if UDP is blocked.
+      - "443:443/udp"
+    # Persist the Let's Encrypt cert + Caddy state across restarts.
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - backend
+    logging: *default-logging
+
+volumes:
+  studio-data:
+    name: studio42_data
+  studio-db:
+    name: studio42_db
+  studio-minio:
+    name: studio42_minio
+  caddy-data:
+    name: studio42_caddy_data
+  caddy-config:
+    name: studio42_caddy_config

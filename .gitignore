@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.local
+*.env
+# MCP config carries a Supabase access token in env.SUPABASE_ACCESS_TOKEN
+.mcp.json
+
+# Docker deploy secrets (GCP service-account key) — keep the dir, ignore keys
+secrets/*
+!secrets/.gitkeep
+
+# Loose GCP service-account keys at the repo root (never commit credentials).
+# The last three patterns only catch keys someone remembered to name well; a key
+# downloaded straight from the Cloud console arrives as
+# "project-<uuid>-<keyid>.json" and matched NONE of them, so it sat in the
+# working tree ready to be committed. Match that shape explicitly too.
+gcp-sa.json
+*-sa.json
+*service-account*.json
+project-*.json
+
+# Backend data (regenerable, large MP4s + uploaded files)
+backend/data/
+
+# Local tooling state
+.claude/
+.playwright-mcp/
+*.log
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+
+# TypeScript incremental build cache (regenerated on every build)
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local-only poster generations (Supabase carved out of the poster path)
+yas-output/
+
+# Debug screenshots & Playwright aria-snapshot dumps (session artifacts —
+# these repeatedly leak into the working tree and must never be committed)
+/e2e-*.png
+/e2e-*.jpeg
+/library-*.png
+/library-*.jpeg
+/image.png
+/backend/image.png
+/frontend/screenshots/
+/*-snap.md
+/picker.md
+/aipanel.md
+/ed2.md
+
+# Timestamped .env backups (made before rotating a credential). These hold
+# EVERY secret in .env and are NOT matched by the *.env rule above.
+.env.bak*
+*.env.bak*
+
+# Investor pitch — private, not part of the product
+pitching.md
+
+# Source pattern art — five print-resolution PNGs, ~75 MB, handed over by
+# design. The prepared kit built from it (backend/data/branding/patterns/) is
+# NOT tracked either — backend/data/ is ignored above, left out of the Docker
+# image and covered by the data volume in production — so the five tintable
+# masks the product needs everywhere are shipped as a tracked copy in
+# backend/app/assets/patterns/ (~2.5 MB). After changing the art, regenerate
+# the kit and refresh that copy:
+#   cd backend && python -m app.services.pattern_kit ../patterns
+#   cp data/branding/patterns/*.mask.png app/assets/patterns/
+/patterns/

@@ -1,0 +1,140 @@
+{
+  "case": "multi_upload_bookend",
+  "about": "An uploaded intro video on a multi-scene reel is used as it is, at its probed length (as on a single-scene reel), not the Veo intro.",
+  "run": {
+    "id": 9205,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "scene_count": 2,
+      "scenes": [
+        {
+          "index": 0,
+          "animation_id": 451,
+          "dialogue": "Line 1."
+        },
+        {
+          "index": 1,
+          "animation_id": 452,
+          "dialogue": "Line 2."
+        }
+      ],
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": 54,
+        "outro_video_upload_id": null
+      },
+      "intro_animation_id": 454,
+      "outro_animation_id": 455
+    }
+  },
+  "world": {
+    "anims": {
+      "451": {
+        "file": "yas_producer/animations/anim-451.mp4",
+        "duration_sec": 8
+      },
+      "452": {
+        "file": "yas_producer/animations/anim-452.mp4",
+        "duration_sec": 8
+      },
+      "454": {
+        "file": "yas_producer/animations/anim-454.mp4",
+        "duration_sec": 4
+      },
+      "455": {
+        "file": "yas_producer/animations/anim-455.mp4",
+        "duration_sec": 4
+      }
+    },
+    "uploads": {
+      "54": "yas_producer/uploads/intro-54.mp4"
+    },
+    "probe": {
+      "yas_producer/uploads/intro-54.mp4": 6.0
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-multi-scene",
+          "props": {
+            "intro_video_path": "<DATA>/yas_producer/uploads/intro-54.mp4",
+            "outro_video_path": "<DATA>/yas_producer/animations/anim-455.mp4",
+            "scenes": [
+              {
+                "path": "<DATA>/yas_producer/animations/anim-451.mp4",
+                "duration_sec": 8.0
+              },
+              {
+                "path": "<DATA>/yas_producer/animations/anim-452.mp4",
+                "duration_sec": 8.0
+              }
+            ],
+            "intro_duration_sec": 6.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9205/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9205,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9205/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        451
+      ],
+      [
+        "duration",
+        451
+      ],
+      [
+        "veo",
+        452
+      ],
+      [
+        "duration",
+        452
+      ],
+      [
+        "upload",
+        54
+      ],
+      [
+        "veo",
+        455
+      ],
+      [
+        "duration",
+        454
+      ],
+      [
+        "duration",
+        455
+      ],
+      [
+        "probe",
+        "yas_producer/uploads/intro-54.mp4"
+      ]
+    ]
+  }
+}

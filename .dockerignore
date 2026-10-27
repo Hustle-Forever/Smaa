@@ -1,0 +1,14 @@
+# Applies to the repo-root build context (the `web` image). Keeps the context
+# small and secrets out. Backend / remotion images use their own .dockerignore.
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/dist
+backend/data
+.git
+.gitignore
+secrets
+**/.env
+!**/.env.example
+*.log

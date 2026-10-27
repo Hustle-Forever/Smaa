@@ -1,0 +1,34 @@
+{
+  "note": "Chip icon label fonts (make_brand42_assets.py --label-fonts). Never delete or edit an entry: stored versions name their label key.",
+  "default": "label-600@671595e1",
+  "faces": {
+    "jost-600@c2dae70a": {
+      "file": "Jost-SemiBold.ttf",
+      "sha256": "c2dae70a6770a846a40951082355aa1bdefa48c2dc2853b34629edec0e64bb90",
+      "family": "Jost",
+      "weight": 600,
+      "scripts": [
+        "Latn"
+      ],
+      "licence": "Jost-OFL.txt",
+      "source": "google/fonts ofl/jost/Jost[wght].ttf at wght 600"
+    },
+    "kufi-600@848fc0f4": {
+      "file": "NotoKufiArabic-SemiBold.ttf",
+      "sha256": "848fc0f466e15ab094156c7bab071ea7ad132d79d6e0818f0bf95f5ddac5da0b",
+      "family": "Noto Kufi Arabic",
+      "weight": 600,
+      "scripts": [
+        "Arab"
+      ],
+      "licence": "NotoKufiArabic-OFL.txt",
+      "source": "google/fonts ofl/notokufiarabic/NotoKufiArabic[wght].ttf at wght 600"
+    }
+  },
+  "labels": {
+    "label-600@671595e1": {
+      "latin": "jost-600@c2dae70a",
+      "arabic": "kufi-600@848fc0f4"
+    }
+  }
+}

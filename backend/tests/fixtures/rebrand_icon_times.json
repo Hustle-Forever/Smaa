@@ -1,0 +1,2294 @@
+{
+ "about": "The icon plans of tests/test_icons_lanes.py (elements/icon.plan, the real planner) the studio says the times of: frontend/scripts/check-rebrand-icon-times.mjs checks that the list, the Moments chips, the notes and the block's settle mark all say one time per icon (its settle), what 'Show at ... anyway' offers, who each one is, the time Suggested says for an idea, and that a version's read-only timeline has its icons on the tracks its draft had. Written with REBRAND_ICON_TIMES=write, asserted otherwise.",
+ "plans": [
+  {
+   "name": "run 830 scene_0, the round-2 QA: Team at 0.2 s, Idea and Brain at 4.0 s",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance",
+      "asked": 0.2
+     },
+     "notes": [
+      "'Team' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "you"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "brain"
+     },
+     "label": "Brain",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.7,
+     "settle": 3.967,
+     "to": 5.767,
+     "hold": 1.6,
+     "moment_t": 4.367,
+     "lane": 1,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "you"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "lightbulb"
+     },
+     "label": "Idea",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.7,
+     "settle": 3.967,
+     "to": 5.767,
+     "hold": 1.6,
+     "moment_t": 4.367,
+     "lane": 0,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "you"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "projects",
+     "w": 12,
+     "at": 5.748,
+     "state": "no_room",
+     "reason": "Gives way to your 'Brain'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "lightbulb"
+     },
+     "label": "Idea",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "brain"
+     },
+     "label": "Brain",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "users-three"
+      },
+      "label": "Team",
+      "at": 0.2
+     },
+     {
+      "glyph": {
+       "source": "library",
+       "id": "lightbulb"
+      },
+      "label": "Idea",
+      "at": 4.0
+     },
+     {
+      "glyph": {
+       "source": "library",
+       "id": "brain"
+      },
+      "label": "Brain",
+      "at": 4.0
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "brain"
+     },
+     "label": "Brain",
+     "from_sec": 3.7,
+     "settle_sec": 3.9667,
+     "to_sec": 5.7667
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "lightbulb"
+     },
+     "label": "Idea",
+     "from_sec": 3.7,
+     "settle_sec": 3.9667,
+     "to_sec": 5.7667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "name": "never said, added at 0.1 s inside the entrance",
+   "items": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.3,
+     "settle": 1.567,
+     "to": 3.367,
+     "hold": 1.6,
+     "moment_t": 1.967,
+     "lane": 0,
+     "word": null,
+     "w": null,
+     "shifted": {
+      "at": 0.1,
+      "said": null,
+      "asked": 0.1,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Zebra' moved to 1.6 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "team"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "piggy-bank",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "users-three",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "puzzle-piece",
+     "word": "projects",
+     "w": 20,
+     "at": 7.0,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000ffff"
+      },
+      "label": "Zebra",
+      "at": 0.1
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "from_sec": 1.3,
+     "settle_sec": 1.5667,
+     "to_sec": 3.3667
+    }
+   ],
+   "icon_lanes": [
+    0
+   ]
+  },
+  {
+   "name": "the owner's Future card, added with no moment",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "Future",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Future",
+     "w": 0,
+     "shifted": {
+      "at": 0.13,
+      "said": 0.2,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Future' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "you"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "Future",
+     "word": "Future",
+     "w": 0,
+     "at": 0.2,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "rocket-launch"
+      },
+      "label": "Future"
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "Future",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    }
+   ],
+   "icon_lanes": [
+    0
+   ]
+  },
+  {
+   "name": "Keep on the AI's Peer pick",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Peer' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "kept"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 5.4,
+     "settle": 5.667,
+     "to": 6.967,
+     "hold": 1.1,
+     "moment_t": 6.067,
+     "lane": 0,
+     "word": "projects",
+     "w": 12,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "projects",
+     "w": 12,
+     "at": 5.748,
+     "state": "on",
+     "reason": null,
+     "added": false
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "users-three"
+      },
+      "label": "Peer"
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "from_sec": 5.4,
+     "settle_sec": 5.6667,
+     "to_sec": 6.9667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    0
+   ]
+  },
+  {
+   "name": "never said, added at 4.0 s, then dropped on the word 'Peer'",
+   "items": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "source": "user",
+     "pinned": true,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Zebra' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 5.4,
+     "settle": 5.667,
+     "to": 6.967,
+     "hold": 1.1,
+     "moment_t": 6.067,
+     "lane": 0,
+     "word": "projects",
+     "w": 12,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "zone",
+     "reason": "Said while the pattern comes in",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "projects",
+     "w": 12,
+     "at": 5.748,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000ffff"
+      },
+      "label": "Zebra",
+      "at": 4.0
+     }
+    ],
+    "tweaks": {
+     "c-00000000ffff": {
+      "w": 0,
+      "words_digest": "d4bd4fbb9c49a859",
+      "off_word": false,
+      "sec": null,
+      "box": null,
+      "hold_sec": null
+     }
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "from_sec": 5.4,
+     "settle_sec": 5.6667,
+     "to_sec": 6.9667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    0
+   ]
+  },
+  {
+   "name": "three never said, added at one moment: tracks 0, 1 and 2",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance",
+      "asked": 0.2
+     },
+     "notes": [
+      "'Team' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "you"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffd"
+     },
+     "label": "Quill",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.7,
+     "settle": 3.967,
+     "to": 5.767,
+     "hold": 1.6,
+     "moment_t": 4.367,
+     "lane": 2,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.7,
+     "settle": 3.967,
+     "to": 5.767,
+     "hold": 1.6,
+     "moment_t": 4.367,
+     "lane": 1,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.7,
+     "settle": 3.967,
+     "to": 5.767,
+     "hold": 1.6,
+     "moment_t": 4.367,
+     "lane": 0,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "projects",
+     "w": 12,
+     "at": 5.748,
+     "state": "no_room",
+     "reason": "Gives way to your 'Yak'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffd"
+     },
+     "label": "Quill",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "users-three"
+      },
+      "label": "Team",
+      "at": 0.2
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000ffff"
+      },
+      "label": "Zebra",
+      "at": 4.0
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000fffe"
+      },
+      "label": "Yak",
+      "at": 4.0
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000fffd"
+      },
+      "label": "Quill",
+      "at": 4.0
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffd"
+     },
+     "label": "Quill",
+     "from_sec": 3.7,
+     "settle_sec": 3.9667,
+     "to_sec": 5.7667
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "from_sec": 3.7,
+     "settle_sec": 3.9667,
+     "to_sec": 5.7667
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "from_sec": 3.7,
+     "settle_sec": 3.9667,
+     "to_sec": 5.7667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    2,
+    1,
+    0
+   ]
+  },
+  {
+   "name": "a said add whose word is busy: a track of its own",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.467,
+     "settle": 1.733,
+     "to": 2.933,
+     "hold": 1.0,
+     "moment_t": 2.133,
+     "lane": 1,
+     "word": "code",
+     "w": 4,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "you"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 1.9,
+     "settle": 2.167,
+     "to": 3.367,
+     "hold": 1.0,
+     "moment_t": 2.567,
+     "lane": 0,
+     "word": "free",
+     "w": 5,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "you"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "word": "free",
+     "w": 5,
+     "at": 2.228,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "word": "code",
+     "w": 4,
+     "at": 1.809,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "piggy-bank"
+      },
+      "label": "Free",
+      "at": 2.2
+     },
+     {
+      "glyph": {
+       "source": "library",
+       "id": "code"
+      },
+      "label": "Code",
+      "at": 1.8
+     }
+    ]
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "from_sec": 1.4667,
+     "settle_sec": 1.7333,
+     "to_sec": 2.9333
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "from_sec": 1.9,
+     "settle_sec": 2.1667,
+     "to_sec": 3.3667
+    }
+   ],
+   "icon_lanes": [
+    1,
+    0
+   ]
+  },
+  {
+   "name": "one timed by hand over another of theirs",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 2.967,
+     "settle": 3.233,
+     "to": 4.433,
+     "hold": 1.0,
+     "moment_t": 3.633,
+     "lane": 1,
+     "word": "tuition",
+     "w": 10,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "you"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "source": "user",
+     "pinned": true,
+     "off_word": true,
+     "from": 3.333,
+     "settle": 3.6,
+     "to": 5.4,
+     "hold": 1.6,
+     "moment_t": 4.0,
+     "lane": 0,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "users-three",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "puzzle-piece",
+     "word": "projects",
+     "w": 20,
+     "at": 7.0,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "library",
+       "id": "piggy-bank"
+      },
+      "label": "Free"
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-0123456789ab"
+      },
+      "label": "Peer"
+     }
+    ],
+    "tweaks": {
+     "c-0123456789ab": {
+      "w": null,
+      "words_digest": null,
+      "off_word": true,
+      "sec": 3.6,
+      "box": null,
+      "hold_sec": null
+     }
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "from_sec": 2.9667,
+     "settle_sec": 3.2333,
+     "to_sec": 4.4333
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "from_sec": 3.3333,
+     "settle_sec": 3.6,
+     "to_sec": 5.4
+    }
+   ],
+   "icon_lanes": [
+    1,
+    0
+   ]
+  },
+  {
+   "name": "two put on track 1: the second bumped to track 2",
+   "items": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ad"
+     },
+     "label": "Tuition",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 2.967,
+     "settle": 3.233,
+     "to": 4.433,
+     "hold": 1.0,
+     "moment_t": 3.633,
+     "lane": 0,
+     "word": "tuition",
+     "w": 10,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 3.9,
+     "settle": 4.167,
+     "to": 5.367,
+     "hold": 1.0,
+     "moment_t": 4.567,
+     "lane": 1,
+     "word": "peer",
+     "w": 12,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ac"
+     },
+     "label": "Learning",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.0,
+     "settle": 4.267,
+     "to": 5.467,
+     "hold": 1.0,
+     "moment_t": 4.667,
+     "lane": 2,
+     "word": "learning",
+     "w": 13,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "piggy-bank",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "users-three",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "puzzle-piece",
+     "word": "projects",
+     "w": 20,
+     "at": 7.0,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ad"
+     },
+     "label": "Tuition",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ac"
+     },
+     "label": "Learning",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-0123456789ad"
+      },
+      "label": "Tuition"
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-0123456789ab"
+      },
+      "label": "Peer"
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-0123456789ac"
+      },
+      "label": "Learning"
+     }
+    ],
+    "lanes": {
+     "c-0123456789ab": 1,
+     "c-0123456789ac": 1
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ad"
+     },
+     "label": "Tuition",
+     "from_sec": 2.9667,
+     "settle_sec": 3.2333,
+     "to_sec": 4.4333
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ab"
+     },
+     "label": "Peer",
+     "from_sec": 3.9,
+     "settle_sec": 4.1667,
+     "to_sec": 5.3667
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-0123456789ac"
+     },
+     "label": "Learning",
+     "from_sec": 4.0,
+     "settle_sec": 4.2667,
+     "to_sec": 5.4667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "name": "an AI pick put on a track",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.333,
+     "settle": 4.6,
+     "to": 5.8,
+     "hold": 1.0,
+     "moment_t": 5.0,
+     "lane": 1,
+     "word": "coding",
+     "w": 14,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 6.2,
+     "settle": 6.467,
+     "to": 7.667,
+     "hold": 1.0,
+     "moment_t": 6.867,
+     "lane": 0,
+     "word": "building",
+     "w": 18,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "no_room",
+     "reason": "Gives way to your 'Code'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "no_room",
+     "reason": "Gives way to your 'Code'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "building",
+     "w": 18,
+     "at": 6.61,
+     "state": "on",
+     "reason": null,
+     "added": false
+    }
+   ],
+   "props": {
+    "lanes": {
+     "code": 1
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "from_sec": 4.3333,
+     "settle_sec": 4.6,
+     "to_sec": 5.8
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "from_sec": 6.2,
+     "settle_sec": 6.4667,
+     "to_sec": 7.6667
+    }
+   ],
+   "icon_lanes": [
+    1,
+    0
+   ]
+  },
+  {
+   "name": "the AI's own, on track 0",
+   "items": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 2.833,
+     "settle": 3.1,
+     "to": 4.3,
+     "hold": 1.0,
+     "moment_t": 3.5,
+     "lane": 0,
+     "word": "tuition",
+     "w": 10,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.6,
+     "settle": 4.867,
+     "to": 6.067,
+     "hold": 1.0,
+     "moment_t": 5.267,
+     "lane": 0,
+     "word": "coding",
+     "w": 14,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "limit",
+     "reason": "Over the limit for this length (2)",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "building",
+     "w": 18,
+     "at": 6.61,
+     "state": "limit",
+     "reason": "Over the limit for this length (2)",
+     "added": false
+    }
+   ],
+   "props": {},
+   "frozen": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "from_sec": 2.8333,
+     "settle_sec": 3.1,
+     "to_sec": 4.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "from_sec": 4.6,
+     "settle_sec": 4.8667,
+     "to_sec": 6.0667
+    }
+   ],
+   "icon_lanes": [
+    0,
+    0
+   ]
+  },
+  {
+   "name": "an AI pick put on track 1, two never said added at its moment",
+   "items": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.3,
+     "settle": 4.567,
+     "to": 6.367,
+     "hold": 1.6,
+     "moment_t": 4.967,
+     "lane": 2,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "source": "user",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.3,
+     "settle": 4.567,
+     "to": 6.367,
+     "hold": 1.6,
+     "moment_t": 4.967,
+     "lane": 0,
+     "word": null,
+     "w": null,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 4.333,
+     "settle": 4.6,
+     "to": 5.8,
+     "hold": 1.0,
+     "moment_t": 5.0,
+     "lane": 1,
+     "word": "coding",
+     "w": 14,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "rocket-launch"
+     },
+     "label": "rocket-launch",
+     "word": "future",
+     "w": 6,
+     "at": 1.44,
+     "state": "available",
+     "reason": "hopeful but general — shown only if you add it",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "piggy-bank"
+     },
+     "label": "Free",
+     "word": "tuition",
+     "w": 10,
+     "at": 3.3,
+     "state": "no_room",
+     "reason": "No room right before 'Zebra'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Team",
+     "word": "peer",
+     "w": 12,
+     "at": 4.24,
+     "state": "no_room",
+     "reason": "No room right before 'Zebra'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "book-open"
+     },
+     "label": "book-open",
+     "word": "learning",
+     "w": 13,
+     "at": 4.32,
+     "state": "refused",
+     "reason": "filler",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "word": "coding",
+     "w": 14,
+     "at": 4.68,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "building",
+     "w": 18,
+     "at": 6.61,
+     "state": "no_room",
+     "reason": "Gives way to your 'Yak'",
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "word": null,
+     "w": null,
+     "at": null,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000ffff"
+      },
+      "label": "Zebra",
+      "at": 4.6
+     },
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000fffe"
+      },
+      "label": "Yak",
+      "at": 4.6
+     }
+    ],
+    "lanes": {
+     "code": 1
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000fffe"
+     },
+     "label": "Yak",
+     "from_sec": 4.3,
+     "settle_sec": 4.5667,
+     "to_sec": 6.3667
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "from_sec": 4.3,
+     "settle_sec": 4.5667,
+     "to_sec": 6.3667
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "code"
+     },
+     "label": "Code",
+     "from_sec": 4.3333,
+     "settle_sec": 4.6,
+     "to_sec": 5.8
+    }
+   ],
+   "icon_lanes": [
+    2,
+    0,
+    1
+   ]
+  },
+  {
+   "name": "the AI's Peer and an add, both pinned to the word 'Peer'",
+   "items": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "source": "user",
+     "pinned": true,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 1,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Zebra' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "team"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "source": "ai",
+     "pinned": true,
+     "off_word": false,
+     "from": 1.233,
+     "settle": 1.5,
+     "to": 3.3,
+     "hold": 1.6,
+     "moment_t": 1.9,
+     "lane": 0,
+     "word": "Peer",
+     "w": 0,
+     "shifted": {
+      "at": 0.0,
+      "said": 0.0,
+      "why": "entrance"
+     },
+     "notes": [
+      "'Peer' moved to 1.5 s, after the pattern comes in"
+     ],
+     "why": {
+      "by": "ai"
+     }
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "source": "ai",
+     "pinned": false,
+     "off_word": false,
+     "from": 5.4,
+     "settle": 5.667,
+     "to": 6.967,
+     "hold": 1.1,
+     "moment_t": 6.067,
+     "lane": 0,
+     "word": "projects",
+     "w": 12,
+     "shifted": null,
+     "notes": [],
+     "why": {
+      "by": "ai"
+     }
+    }
+   ],
+   "ideas": [
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "word": "projects",
+     "w": 12,
+     "at": 5.748,
+     "state": "on",
+     "reason": null,
+     "added": false
+    },
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "word": "Peer",
+     "w": 0,
+     "at": 0.0,
+     "state": "on",
+     "reason": null,
+     "added": true
+    }
+   ],
+   "props": {
+    "added": [
+     {
+      "glyph": {
+       "source": "custom",
+       "id": "c-00000000ffff"
+      },
+      "label": "Zebra",
+      "at": 4.0
+     }
+    ],
+    "tweaks": {
+     "c-00000000ffff": {
+      "w": 0,
+      "words_digest": "d4bd4fbb9c49a859",
+      "off_word": false,
+      "sec": null,
+      "box": null,
+      "hold_sec": null
+     },
+     "users-three": {
+      "w": 0,
+      "words_digest": "d4bd4fbb9c49a859",
+      "off_word": false,
+      "sec": null,
+      "box": null,
+      "hold_sec": null
+     }
+    }
+   },
+   "frozen": [
+    {
+     "glyph": {
+      "source": "custom",
+      "id": "c-00000000ffff"
+     },
+     "label": "Zebra",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "users-three"
+     },
+     "label": "Peer",
+     "from_sec": 1.2333,
+     "settle_sec": 1.5,
+     "to_sec": 3.3
+    },
+    {
+     "glyph": {
+      "source": "library",
+      "id": "puzzle-piece"
+     },
+     "label": "Projects",
+     "from_sec": 5.4,
+     "settle_sec": 5.6667,
+     "to_sec": 6.9667
+    }
+   ],
+   "icon_lanes": [
+    1,
+    0,
+    0
+   ]
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "video-edit-composition": ["../services/remotion/src/compositions/VideoEdit.tsx"],
+      "video-edit-schema": ["../services/remotion/src/compositions/schema.ts"]
+    }
+  },
+  "include": [
+    "src",
+    "../services/remotion/src/compositions/VideoEdit.tsx",
+    "../services/remotion/src/compositions/schema.ts"
+  ]
+}

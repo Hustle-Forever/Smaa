@@ -1,0 +1,54 @@
+# LOCAL TEST ONLY — plain HTTP on :80, no Let's Encrypt (42studio.fit DNS does
+# not point at this machine). Used via docker-compose.local.yml. Same routing
+# as production: SPA at /, API same-origin at /api, SSE-safe, media at /media.
+:80 {
+	@compress not path /media/*
+	encode @compress zstd gzip
+	root * /srv
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+
+	# Media objects in MinIO. Keep this block identical to the one in
+	# web/Caddyfile, which explains each rule.
+	handle /media/* {
+		header >X-Content-Type-Options nosniff
+
+		@override {
+			expression `{http.request.uri.query}.matches("(?i)(^|&)response-")`
+			not query X-Amz-Credential=*
+		}
+		handle @override {
+			respond 404
+		}
+
+		@object {
+			method GET HEAD
+			path_regexp ^/media/[a-z0-9][a-z0-9.-]+/.+
+			not path /media/minio/*
+		}
+		handle @object {
+			@unsigned not query X-Amz-Credential=*
+			rewrite @unsigned ?
+			uri strip_prefix /media
+			reverse_proxy minio:9000 {
+				header_up Host {upstream_hostport}
+				header_up -Cookie
+				header_up -Authorization
+			}
+		}
+
+		handle {
+			respond 404
+		}
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,115 @@
+{
+  "case": "single_upload_bookend",
+  "about": "An uploaded intro video used as it is, at its probed length; the outro's upload is not found, so its Veo is used.",
+  "run": {
+    "id": 9105,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": 51,
+        "outro_video_upload_id": 52
+      },
+      "main_animation_id": 391,
+      "intro_animation_id": 392,
+      "outro_animation_id": 393
+    }
+  },
+  "world": {
+    "anims": {
+      "391": {
+        "file": "yas_producer/animations/anim-391.mp4",
+        "duration_sec": 8
+      },
+      "392": {
+        "file": "yas_producer/animations/anim-392.mp4",
+        "duration_sec": 4
+      },
+      "393": {
+        "file": "yas_producer/animations/anim-393.mp4",
+        "duration_sec": 4
+      }
+    },
+    "uploads": {
+      "51": "yas_producer/uploads/intro-51.mp4",
+      "52": null
+    },
+    "probe": {
+      "yas_producer/uploads/intro-51.mp4": 5.312
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-with-cards",
+          "props": {
+            "intro_image_path": null,
+            "intro_video_path": "<DATA>/yas_producer/uploads/intro-51.mp4",
+            "main_video_path": "<DATA>/yas_producer/animations/anim-391.mp4",
+            "outro_image_path": null,
+            "outro_video_path": "<DATA>/yas_producer/animations/anim-393.mp4",
+            "intro_duration_sec": 5.312,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "main_duration_sec": 8,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9105/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9105,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9105/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        391
+      ],
+      [
+        "upload",
+        51
+      ],
+      [
+        "upload",
+        52
+      ],
+      [
+        "veo",
+        393
+      ],
+      [
+        "duration",
+        392
+      ],
+      [
+        "duration",
+        391
+      ],
+      [
+        "duration",
+        393
+      ],
+      [
+        "probe",
+        "yas_producer/uploads/intro-51.mp4"
+      ]
+    ]
+  }
+}

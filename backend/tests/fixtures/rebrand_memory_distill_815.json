@@ -1,0 +1,178 @@
+{
+ "23": {
+  "colours": {
+   "custom": "#ff00dd",
+   "source": "brand"
+  },
+  "engine": "omni",
+  "icons": null,
+  "patterns": [
+   {
+    "colour_asked": "auto",
+    "colour_drawn": null,
+    "entrance": "left_to_right",
+    "entrance_sec": 1.0,
+    "exit": null,
+    "exit_sec": null,
+    "follow": null,
+    "hand": null,
+    "layout": null,
+    "slug": "blueprint",
+    "span": {
+     "from": null,
+     "to": null
+    },
+    "z": "behind"
+   }
+  ],
+  "trim": {
+   "auto": 235,
+   "end": 235,
+   "user": false
+  }
+ },
+ "24": {
+  "colours": {
+   "custom": "#ff00dd",
+   "source": "brand"
+  },
+  "engine": "omni",
+  "icons": null,
+  "patterns": [
+   {
+    "colour_asked": "auto",
+    "colour_drawn": null,
+    "entrance": "auto",
+    "entrance_sec": 1.0,
+    "exit": null,
+    "exit_sec": null,
+    "follow": null,
+    "hand": null,
+    "layout": null,
+    "slug": "structure",
+    "span": {
+     "from": null,
+     "to": null
+    },
+    "z": "behind"
+   }
+  ],
+  "trim": {
+   "auto": 235,
+   "end": 235,
+   "user": false
+  }
+ },
+ "25": {
+  "colours": {
+   "custom": "#ff00dd",
+   "source": "brand"
+  },
+  "engine": "omni",
+  "icons": {
+   "ai": true,
+   "colour": null,
+   "dismissed": [
+    "rocket"
+   ],
+   "entrance": "auto",
+   "items": [
+    {
+     "box": {
+      "h": 0.09,
+      "w": 0.16,
+      "x": 0.04,
+      "y": 0.215
+     },
+     "enter": "glitch",
+     "fill": "#303030",
+     "from": 1.2333,
+     "glyph": "rocket-launch",
+     "glyph_source": "library",
+     "ink": "#ffffff",
+     "label": "Your Future",
+     "layer": null,
+     "leave": null,
+     "off_word": false,
+     "pinned": false,
+     "said_at": null,
+     "settle": 1.5,
+     "size": null,
+     "source": "added",
+     "style": "badge",
+     "to": 2.7,
+     "word": "future"
+    },
+    {
+     "box": {
+      "h": 0.09,
+      "w": 0.16,
+      "x": 0.04,
+      "y": 0.215
+     },
+     "enter": "glitch",
+     "fill": "#303030",
+     "from": 3.0,
+     "glyph": "piggy-bank",
+     "glyph_source": "library",
+     "ink": "#ffffff",
+     "label": "Tuition-Free",
+     "layer": null,
+     "leave": null,
+     "off_word": false,
+     "pinned": false,
+     "said_at": null,
+     "settle": 3.2667,
+     "size": null,
+     "source": "ai",
+     "style": "badge",
+     "to": 4.7333,
+     "word": "tuition"
+    }
+   ],
+   "on": true,
+   "style": null
+  },
+  "patterns": [
+   {
+    "colour_asked": "auto",
+    "colour_drawn": null,
+    "entrance": "auto",
+    "entrance_sec": 1.0,
+    "exit": null,
+    "exit_sec": null,
+    "follow": null,
+    "hand": null,
+    "layout": null,
+    "slug": "structure",
+    "span": {
+     "from": null,
+     "to": null
+    },
+    "z": "behind"
+   },
+   {
+    "colour_asked": "auto",
+    "colour_drawn": null,
+    "entrance": "auto",
+    "entrance_sec": 1.0,
+    "exit": null,
+    "exit_sec": null,
+    "follow": null,
+    "hand": null,
+    "layout": null,
+    "slug": "beads_row",
+    "span": {
+     "from": null,
+     "to": null
+    },
+    "z": "behind"
+   }
+  ],
+  "trim": {
+   "auto": 235,
+   "end": 235,
+   "user": false
+  }
+ }
+}

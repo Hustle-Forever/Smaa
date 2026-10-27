@@ -1,0 +1,317 @@
+{
+ "about": "Every studio recipe stored on yas_rebrand_experiments as of 2026-09-29 (run 815: versions 23, 24 and 25), as options.recipe, with the recipe_hash its run recorded (evidence.recipe_hash). Read once, read-only; a recipe change must re-hash each the same.",
+ "versions": {
+  "23": {
+   "recipe": {
+    "colours": {
+     "custom": "#ff00dd",
+     "source": "brand"
+    },
+    "director": {
+     "head": "brief",
+     "intensity": "balanced",
+     "notes": ""
+    },
+    "elements": [
+     {
+      "animation": {
+       "duration_sec": 1.0,
+       "entrance": "left_to_right",
+       "start": {
+        "mode": "clip_start",
+        "sec": null,
+        "word": null
+       }
+      },
+      "enabled": true,
+      "exact": false,
+      "id": "pattern",
+      "kind": "pattern",
+      "placement": {
+       "anchor": "edge-left",
+       "box": null,
+       "margin": 0.04,
+       "offset": [
+        0.0,
+        0.0
+       ],
+       "region": "frame",
+       "rotate": 0.0,
+       "size": null
+      },
+      "props": {
+       "colour": "auto",
+       "layout": null,
+       "slug": "blueprint"
+      },
+      "z": "behind"
+     }
+    ],
+    "engine": "omni",
+    "guards": {
+     "bars": "auto",
+     "face": "shift",
+     "speaker_front": true,
+     "veil": "entrance"
+    },
+    "preset": null,
+    "recipe_version": 1,
+    "seed": "studio:815:scene_0",
+    "target": "scene_0"
+   },
+   "recipe_hash": "c925499206773aa4",
+   "run_id": 815
+  },
+  "24": {
+   "recipe": {
+    "colours": {
+     "custom": "#ff00dd",
+     "source": "brand"
+    },
+    "director": {
+     "head": "brief",
+     "intensity": "balanced",
+     "notes": ""
+    },
+    "elements": [
+     {
+      "animation": {
+       "duration_sec": 1.0,
+       "entrance": "auto",
+       "start": {
+        "mode": "clip_start",
+        "sec": null,
+        "word": null
+       }
+      },
+      "enabled": true,
+      "exact": false,
+      "id": "pattern",
+      "kind": "pattern",
+      "placement": {
+       "anchor": "edge-left",
+       "box": null,
+       "margin": 0.04,
+       "offset": [
+        0.0,
+        0.0
+       ],
+       "region": "frame",
+       "rotate": 0.0,
+       "size": null
+      },
+      "props": {
+       "colour": "auto",
+       "layout": null,
+       "slug": "structure"
+      },
+      "z": "behind"
+     }
+    ],
+    "engine": "omni",
+    "guards": {
+     "bars": "auto",
+     "face": "shift",
+     "speaker_front": true,
+     "veil": "entrance"
+    },
+    "preset": null,
+    "recipe_version": 1,
+    "seed": "studio:815:scene_0",
+    "target": "scene_0"
+   },
+   "recipe_hash": "506715eed4fdc23c",
+   "run_id": 815
+  },
+  "25": {
+   "recipe": {
+    "colours": {
+     "custom": "#ff00dd",
+     "source": "brand"
+    },
+    "director": {
+     "head": "brief",
+     "intensity": "balanced",
+     "notes": ""
+    },
+    "elements": [
+     {
+      "animation": {
+       "duration_sec": 1.0,
+       "entrance": "auto",
+       "start": {
+        "mode": "clip_start",
+        "sec": null,
+        "word": null
+       }
+      },
+      "enabled": true,
+      "exact": false,
+      "id": "pattern",
+      "kind": "pattern",
+      "placement": {
+       "anchor": "edge-left",
+       "box": null,
+       "margin": 0.04,
+       "offset": [
+        0.0,
+        0.0
+       ],
+       "region": "frame",
+       "rotate": 0.0,
+       "size": null
+      },
+      "props": {
+       "colour": "auto",
+       "layout": null,
+       "slug": "structure"
+      },
+      "z": "behind"
+     },
+     {
+      "animation": {
+       "duration_sec": 1.0,
+       "entrance": "auto",
+       "start": {
+        "mode": "clip_start",
+        "sec": null,
+        "word": null
+       }
+      },
+      "enabled": true,
+      "exact": false,
+      "id": "pattern-2",
+      "kind": "pattern",
+      "placement": {
+       "anchor": "edge-bottom",
+       "box": null,
+       "margin": 0.04,
+       "offset": [
+        0.0,
+        0.0
+       ],
+       "region": "frame",
+       "rotate": 0.0,
+       "size": null
+      },
+      "props": {
+       "colour": "auto",
+       "layout": null,
+       "slug": "beads_row"
+      },
+      "z": "behind"
+     },
+     {
+      "animation": {
+       "duration_sec": 1.0,
+       "entrance": "auto",
+       "start": {
+        "mode": "clip_start",
+        "sec": null,
+        "word": null
+       }
+      },
+      "enabled": true,
+      "exact": true,
+      "id": "icons",
+      "kind": "icon",
+      "placement": {
+       "anchor": "auto",
+       "box": null,
+       "margin": 0.04,
+       "offset": [
+        0.0,
+        0.0
+       ],
+       "region": "frame",
+       "rotate": 0.0,
+       "size": null
+      },
+      "props": {
+       "added": [
+        {
+         "glyph": {
+          "id": "rocket-launch",
+          "source": "library"
+         },
+         "label": "Your Future"
+        }
+       ],
+       "dismissed": [
+        "rocket"
+       ],
+       "resolved": [
+        {
+         "box": {
+          "h": 0.09,
+          "w": 0.16,
+          "x": 0.04,
+          "y": 0.215
+         },
+         "fill": "#303030",
+         "from_sec": 1.2333,
+         "fx": {
+          "entrance": "glitch",
+          "seed": "studio:815:scene_0:rocket-launch"
+         },
+         "glyph": {
+          "id": "rocket-launch",
+          "source": "library"
+         },
+         "ink": "#ffffff",
+         "label": "Your Future",
+         "max_overlap": 0.0,
+         "purpose": "Says 'future'",
+         "settle_sec": 1.5,
+         "style": "badge",
+         "to_sec": 2.7,
+         "word": "future"
+        },
+        {
+         "box": {
+          "h": 0.09,
+          "w": 0.16,
+          "x": 0.04,
+          "y": 0.215
+         },
+         "fill": "#303030",
+         "from_sec": 3.0,
+         "fx": {
+          "entrance": "glitch",
+          "seed": "studio:815:scene_0:piggy-bank"
+         },
+         "glyph": {
+          "id": "piggy-bank",
+          "source": "library"
+         },
+         "ink": "#ffffff",
+         "label": "Tuition-Free",
+         "max_overlap": 0.0,
+         "purpose": "Emphasizes a major benefit: no cost for education.",
+         "settle_sec": 3.2667,
+         "style": "badge",
+         "to_sec": 4.7333,
+         "word": "tuition"
+        }
+       ]
+      },
+      "z": "behind"
+     }
+    ],
+    "engine": "omni",
+    "guards": {
+     "bars": "auto",
+     "face": "shift",
+     "speaker_front": true,
+     "veil": "entrance"
+    },
+    "preset": null,
+    "recipe_version": 1,
+    "seed": "studio:815:scene_0",
+    "target": "scene_0"
+   },
+   "recipe_hash": "5db9907dd636b039",
+   "run_id": 815
+  }
+ }
+}

@@ -1,0 +1,40 @@
+# Local-test override. Run with:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#
+# Differences from production:
+#   - Caddy serves plain HTTP on http://localhost:8088 (no real domain / ACME).
+#   - Backend port 8000 is published on host 8001 so you can curl it directly.
+#   - Media URLs point at http://localhost:8088/media instead of PUBLIC_URL.
+# Everything else (shared volume, cross-container networking, MinIO and its
+# minio-init setup) is identical to prod. The same MINIO_ROOT_* and S3_* lines
+# must be in the root .env (see .env.deploy.example).
+services:
+  web:
+    volumes:
+      - ./web/Caddyfile.local:/etc/caddy/Caddyfile:ro
+    ports: !override
+      - "127.0.0.1:8088:80"
+
+  backend:
+    # Prod points env_file at /.env (VPS layout). Locally the backend secrets
+    # live in backend/.env. We ALSO read the repo-root .env (loaded LAST, so it
+    # wins for any shared key) — that's where SUNO_API_KEY lives, matching how
+    # the deployed server (prod compose) reads it from the root .env. A key that
+    # is absent from root .env simply falls back to backend/.env, so this never
+    # clobbers the local secrets.
+    env_file: !override
+      - ./backend/.env
+      - .env
+    # Composition-poller instance id (STUDIO_INSTANCE_ID) is read from backend/.env
+    # — NOT hardcoded here — so every machine on the SHARED Supabase DB gets a
+    # UNIQUE id and pollers never fight over each other's renders. Each teammate
+    # sets their own value in their (gitignored) backend/.env, e.g.
+    # STUDIO_INSTANCE_ID=local-<yourname>. If unset, it falls back to the
+    # container hostname (still unique, but changes on rebuild). See
+    # backend/.env.example.
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      # Browsers load media from the local Caddy, not from PUBLIC_URL (the prod
+      # domain in the root .env). Server-side fetches still use minio:9000.
+      S3_PUBLIC_BASE_URL: "http://localhost:8088/media"

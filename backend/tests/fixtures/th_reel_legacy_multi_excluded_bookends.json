@@ -1,0 +1,124 @@
+{
+  "case": "multi_excluded_bookends",
+  "about": "Two scenes, both bookends excluded; their durations are still looked up and sent.",
+  "run": {
+    "id": 9203,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "scene_count": 2,
+      "scenes": [
+        {
+          "index": 0,
+          "animation_id": 431,
+          "dialogue": "Line 1."
+        },
+        {
+          "index": 1,
+          "animation_id": 432,
+          "dialogue": "Line 2."
+        }
+      ],
+      "intro_excluded": true,
+      "outro_excluded": true,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "intro_animation_id": 434,
+      "outro_animation_id": 435,
+      "intro_image_id": 908,
+      "outro_image_id": 909
+    }
+  },
+  "world": {
+    "anims": {
+      "431": {
+        "file": "yas_producer/animations/anim-431.mp4",
+        "duration_sec": 8
+      },
+      "432": {
+        "file": "yas_producer/animations/anim-432.mp4",
+        "duration_sec": 8
+      },
+      "434": {
+        "file": "yas_producer/animations/anim-434.mp4",
+        "duration_sec": 4
+      },
+      "435": {
+        "file": "yas_producer/animations/anim-435.mp4",
+        "duration_sec": 4
+      }
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-multi-scene",
+          "props": {
+            "intro_video_path": null,
+            "outro_video_path": null,
+            "scenes": [
+              {
+                "path": "<DATA>/yas_producer/animations/anim-431.mp4",
+                "duration_sec": 8.0
+              },
+              {
+                "path": "<DATA>/yas_producer/animations/anim-432.mp4",
+                "duration_sec": 8.0
+              }
+            ],
+            "intro_duration_sec": 4.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9203/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9203,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9203/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        431
+      ],
+      [
+        "duration",
+        431
+      ],
+      [
+        "veo",
+        432
+      ],
+      [
+        "duration",
+        432
+      ],
+      [
+        "duration",
+        434
+      ],
+      [
+        "duration",
+        435
+      ]
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "case": "single_main_missing",
+  "about": "The main clip is not on disk: nothing is sent and nothing patched (retried next tick).",
+  "run": {
+    "id": 9107,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "main_animation_id": 461,
+      "intro_animation_id": 462
+    }
+  },
+  "world": {
+    "anims": {
+      "461": {
+        "file": null,
+        "duration_sec": 8
+      },
+      "462": {
+        "file": "yas_producer/animations/anim-462.mp4",
+        "duration_sec": 4
+      }
+    }
+  },
+  "golden": {
+    "posts": [],
+    "patches": [],
+    "lookups": [
+      [
+        "veo",
+        461
+      ]
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "case": "multi_scene_missing",
+  "about": "A scene's clip is not on disk: nothing is sent and nothing patched (retried next tick).",
+  "run": {
+    "id": 9206,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "scene_count": 2,
+      "scenes": [
+        {
+          "index": 0,
+          "animation_id": 471,
+          "dialogue": "Line 1."
+        },
+        {
+          "index": 1,
+          "animation_id": 472,
+          "dialogue": "Line 2."
+        }
+      ],
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "intro_animation_id": 474
+    }
+  },
+  "world": {
+    "anims": {
+      "471": {
+        "file": "yas_producer/animations/anim-471.mp4",
+        "duration_sec": 8
+      },
+      "472": {
+        "file": null,
+        "duration_sec": 8
+      },
+      "474": {
+        "file": "yas_producer/animations/anim-474.mp4",
+        "duration_sec": 4
+      }
+    }
+  },
+  "golden": {
+    "posts": [],
+    "patches": [],
+    "lookups": [
+      [
+        "veo",
+        471
+      ],
+      [
+        "duration",
+        471
+      ],
+      [
+        "veo",
+        472
+      ]
+    ]
+  }
+}

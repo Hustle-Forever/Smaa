@@ -1,0 +1,97 @@
+{
+  "case": "single_upload_probe_fails",
+  "about": "An uploaded outro whose probe fails: its Veo's duration_sec is sent instead.",
+  "run": {
+    "id": 9106,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": 53
+      },
+      "main_animation_id": 401,
+      "outro_animation_id": 403
+    }
+  },
+  "world": {
+    "anims": {
+      "401": {
+        "file": "yas_producer/animations/anim-401.mp4",
+        "duration_sec": 8
+      },
+      "403": {
+        "file": "yas_producer/animations/anim-403.mp4",
+        "duration_sec": 4
+      }
+    },
+    "uploads": {
+      "53": "yas_producer/uploads/outro-53.mov"
+    },
+    "probe": {
+      "yas_producer/uploads/outro-53.mov": null
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-with-cards",
+          "props": {
+            "intro_image_path": null,
+            "intro_video_path": null,
+            "main_video_path": "<DATA>/yas_producer/animations/anim-401.mp4",
+            "outro_image_path": null,
+            "outro_video_path": "<DATA>/yas_producer/uploads/outro-53.mov",
+            "intro_duration_sec": 4.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "main_duration_sec": 8,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9106/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9106,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9106/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        401
+      ],
+      [
+        "upload",
+        53
+      ],
+      [
+        "duration",
+        401
+      ],
+      [
+        "duration",
+        403
+      ],
+      [
+        "probe",
+        "yas_producer/uploads/outro-53.mov"
+      ]
+    ]
+  }
+}

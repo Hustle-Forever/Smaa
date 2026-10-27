@@ -1,0 +1,98 @@
+{
+  "case": "single_excluded_bookends",
+  "about": "Both bookends excluded: main only; the bookends' durations are still looked up and sent.",
+  "run": {
+    "id": 9104,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "intro_excluded": true,
+      "outro_excluded": true,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "main_animation_id": 381,
+      "intro_animation_id": 382,
+      "outro_animation_id": 383,
+      "intro_image_id": 906,
+      "outro_image_id": 907
+    }
+  },
+  "world": {
+    "anims": {
+      "381": {
+        "file": "yas_producer/animations/anim-381.mp4",
+        "duration_sec": 8
+      },
+      "382": {
+        "file": "yas_producer/animations/anim-382.mp4",
+        "duration_sec": 4
+      },
+      "383": {
+        "file": "yas_producer/animations/anim-383.mp4",
+        "duration_sec": 4
+      }
+    },
+    "cards": {
+      "906": "yas_producer/talking-head-v2/9104/intro-906.png",
+      "907": "yas_producer/talking-head-v2/9104/outro-907.png"
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-with-cards",
+          "props": {
+            "intro_image_path": null,
+            "intro_video_path": null,
+            "main_video_path": "<DATA>/yas_producer/animations/anim-381.mp4",
+            "outro_image_path": null,
+            "outro_video_path": null,
+            "intro_duration_sec": 4.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "main_duration_sec": 8,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9104/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9104,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9104/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        381
+      ],
+      [
+        "duration",
+        382
+      ],
+      [
+        "duration",
+        381
+      ],
+      [
+        "duration",
+        383
+      ]
+    ]
+  }
+}

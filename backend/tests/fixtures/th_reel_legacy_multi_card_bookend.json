@@ -1,0 +1,138 @@
+{
+  "case": "multi_card_bookend",
+  "about": "The intro's Veo file is missing, so its card; the outro has no Veo and no card, so its reference asset.",
+  "run": {
+    "id": 9204,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "scene_count": 2,
+      "scenes": [
+        {
+          "index": 0,
+          "animation_id": 441,
+          "dialogue": "Line 1."
+        },
+        {
+          "index": 1,
+          "animation_id": 442,
+          "dialogue": "Line 2."
+        }
+      ],
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": 42,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "intro_animation_id": 444,
+      "intro_image_id": 910,
+      "outro_image_id": 911
+    }
+  },
+  "world": {
+    "anims": {
+      "441": {
+        "file": "yas_producer/animations/anim-441.mp4",
+        "duration_sec": 8
+      },
+      "442": {
+        "file": "yas_producer/animations/anim-442.mp4",
+        "duration_sec": 8
+      },
+      "444": {
+        "file": null,
+        "duration_sec": 4
+      }
+    },
+    "cards": {
+      "910": "yas_producer/talking-head-v2/9204/intro-910.png",
+      "911": null
+    },
+    "assets": {
+      "42": "assets/refs/outro-42.mp4"
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-multi-scene",
+          "props": {
+            "intro_video_path": "<DATA>/yas_producer/talking-head-v2/9204/intro-910.png",
+            "outro_video_path": "<DATA>/assets/refs/outro-42.mp4",
+            "scenes": [
+              {
+                "path": "<DATA>/yas_producer/animations/anim-441.mp4",
+                "duration_sec": 8.0
+              },
+              {
+                "path": "<DATA>/yas_producer/animations/anim-442.mp4",
+                "duration_sec": 8.0
+              }
+            ],
+            "intro_duration_sec": 4.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "width": 1080,
+            "height": 1920
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9204/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9204,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9204/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        441
+      ],
+      [
+        "duration",
+        441
+      ],
+      [
+        "veo",
+        442
+      ],
+      [
+        "duration",
+        442
+      ],
+      [
+        "veo",
+        444
+      ],
+      [
+        "card",
+        910
+      ],
+      [
+        "card",
+        911
+      ],
+      [
+        "asset",
+        42
+      ],
+      [
+        "duration",
+        444
+      ]
+    ]
+  }
+}

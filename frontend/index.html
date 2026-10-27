@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230F1011'/%3E%3Ctext x='50%25' y='58%25' font-family='ui-sans-serif,system-ui' font-weight='700' font-size='14' text-anchor='middle' fill='%23ffffff'%3E42%3C/text%3E%3C/svg%3E" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creative Command Center — 42 Abu Dhabi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Fonts loaded NON-BLOCKING. As a plain <link rel="stylesheet"> this was a
+      render-blocking request to a third-party origin on every load: the browser
+      would not paint until Google answered, delaying first paint and therefore
+      the first tile request behind it.
+
+      The media="print" swap is the standard trick — a print stylesheet is not
+      render-blocking, and onload flips it to "all" so it applies. The <noscript>
+      copy keeps the fonts working without JS. `display=swap` already means text
+      paints in the fallback face immediately, so nothing is invisible while this
+      is in flight; only the final face swaps in.
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all';this.onload=null;"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+  </head>
+  <body class="h-full bg-bg text-fg antialiased">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

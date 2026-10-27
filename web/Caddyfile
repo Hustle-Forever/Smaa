@@ -1,0 +1,94 @@
+# Domain + ACME email come from the container environment (set in compose).
+# For a quick local HTTP test you can run with DOMAIN=":80" (no TLS).
+{$DOMAIN} {
+	# /media is left out: media bytes are already compressed, and a proxied Range
+	# response has to stay byte for byte what MinIO sent.
+	@compress not path /media/*
+	encode @compress zstd gzip
+	root * /srv
+
+	# API + Server-Sent Events → backend. flush_interval -1 disables response
+	# buffering so SSE (agent run events) streams to the browser in real time.
+	# Generous timeouts cover slow Gemini Pro / OpenAI quality=high calls.
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+			transport http {
+				read_timeout 600s
+				write_timeout 600s
+			}
+		}
+	}
+
+	# Vite emits content-hashed filenames under /assets/* (e.g. index-a1b2c3.js),
+	# so their content never changes for a given URL → cache them for a year,
+	# immutable, no revalidation. This makes repeat app loads near-instant.
+	@assets path /assets/*
+	handle @assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Media objects in MinIO, as https://<domain>/media/<bucket>/<key>. Private
+	# buckets need a presigned URL from the backend; only approved-instagram is
+	# readable anonymously (Instagram fetches from it). Object GET/HEAD is all
+	# that reaches MinIO: no listing, no admin API, no writes. Anything else
+	# under /media is a 404 here rather than the SPA's index.html.
+	handle /media/* {
+		# `>` sets it after the proxy, replacing MinIO's own copy instead of
+		# sending the header twice.
+		header >X-Content-Type-Options nosniff
+
+		# MinIO applies response-content-type and friends even to anonymous
+		# requests, and /media is the app's own origin, so an unsigned override
+		# could make a public image render as HTML. A signed download carries its
+		# override inside the signature. MinIO counts a request as presigned only
+		# when it has an X-Amz-Credential key (exact case), so that is the test,
+		# not X-Amz-Signature.
+		@override {
+			expression `{http.request.uri.query}.matches("(?i)(^|&)response-")`
+			not query X-Amz-Credential=*
+		}
+		handle @override {
+			respond 404
+		}
+
+		@object {
+			method GET HEAD
+			path_regexp ^/media/[a-z0-9][a-z0-9.-]+/.+
+			not path /media/minio/*
+		}
+		handle @object {
+			# An unsigned request needs no query (the ?v= cache buster is ignored),
+			# so drop it: a percent-encoded response-* key can't slip past the
+			# matcher above that way. The escaped path is left as it is.
+			@unsigned not query X-Amz-Credential=*
+			rewrite @unsigned ?
+			uri strip_prefix /media
+			# The backend presigns for host minio:9000, so that is the Host MinIO
+			# must see. The session cookie and any Authorization header stay here.
+			reverse_proxy minio:9000 {
+				header_up Host {upstream_hostport}
+				header_up -Cookie
+				header_up -Authorization
+			}
+		}
+
+		handle {
+			respond 404
+		}
+	}
+
+	# Static SPA: serve the file if it exists, else fall back to index.html.
+	# index.html itself must NEVER be long-cached or users get stuck on a stale
+	# bundle that points at deleted hashed assets — always revalidate it.
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Automatic Let's Encrypt certificate for {$DOMAIN}.
+	tls {$ACME_EMAIL}
+}

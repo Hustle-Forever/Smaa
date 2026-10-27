@@ -1,0 +1,116 @@
+{
+  "director": {
+    "full.director_key": "9892714f7b2ee40d9874",
+    "full.inputs": {
+      "catalog": "phosphor-fill-469c06057a",
+      "model": "gemini-2.5-flash",
+      "others": "5d341da28aa460dd",
+      "script": "0aa10ac328fd68af",
+      "spots": "bdccb91ec344d128",
+      "take": 1,
+      "topic": "42\nYour Future, Uncoded.",
+      "version": 1,
+      "words": "9a0b030d68835c80"
+    },
+    "full.inputs_digest": "800881d0046b33097e5f",
+    "plain.director_key": "0fe12516b2a4502aabae",
+    "plain.inputs": {
+      "catalog": "phosphor-fill-469c06057a",
+      "model": "gemini-2.5-flash",
+      "others": "4f53cda18c2baa0c",
+      "script": "0aa10ac328fd68af",
+      "spots": "b7f343d070bfc0ca",
+      "take": 0,
+      "topic": "",
+      "version": 1,
+      "words": "9a0b030d68835c80"
+    },
+    "plain.inputs_digest": "6add6a0aa97d50aff01a"
+  },
+  "fixtures": {
+    "hand_and_span.plan_key": "56aec48db9edeb0c",
+    "hand_and_span.preview_key": "e7ce096ae0c194a0",
+    "hand_and_span.preview_key_on_v25": "fb1cb1934678e954",
+    "hand_and_span.recipe_hash": "7e8a8f048c269fe5",
+    "hand_and_span.render_key": "c11a86e9b1d558a90659",
+    "hand_and_span.render_key_under": "0135637480414e029073",
+    "hand_and_span.spec_memo": "f8c0e5eaaf3bd84788dc",
+    "hand_and_span.spec_memo_on_v25": "68b0b1391bfa0d4fba43",
+    "hand_and_span.stored_recipe_hash": "d1aa47fdd62e0f48",
+    "hand_and_span.timing_key": "f2252dc1531c4036",
+    "icons_only.plan_key": "944949dafcaf4d70",
+    "icons_only.preview_key": "4907d41b78da4297",
+    "icons_only.preview_key_on_v25": "0f0cfbcd8712e24a",
+    "icons_only.recipe_hash": "44768f68bbf5f1d9",
+    "icons_only.render_key": "3fa9c000e7fdb649b26c",
+    "icons_only.render_key_under": "1c5e2b2cee727ae731be",
+    "icons_only.spec_memo": "892121544a9dd1e90034",
+    "icons_only.spec_memo_on_v25": "aa0f9dbf1d9d02c7a170",
+    "icons_only.stored_recipe_hash": "625979cb01988e75",
+    "icons_only.timing_key": "b8873bf1783d0235",
+    "starting_draft.plan_key": "2498c55692dac71b",
+    "starting_draft.preview_key": "5442186ff3eaa4ea",
+    "starting_draft.preview_key_on_v25": "3fc3a965a0688d4a",
+    "starting_draft.recipe_hash": "edced4de95b2979d",
+    "starting_draft.render_key": "0f6b9f4aa4dd7b7578c5",
+    "starting_draft.render_key_under": "e7a1ea6ef5d370d93a96",
+    "starting_draft.spec_memo": "885f39a280073df160a0",
+    "starting_draft.spec_memo_on_v25": "69ec8b0920d9e7a7e2f0",
+    "starting_draft.stored_recipe_hash": "9f6c1131528be7e6",
+    "starting_draft.timing_key": "d1d47dd92f0f68c1"
+  },
+  "run_815": {
+    "director.inputs": {
+      "catalog": "phosphor-fill-469c06057a",
+      "model": "gemini-2.5-flash",
+      "others": "4f53cda18c2baa0c",
+      "script": "0aa10ac328fd68af",
+      "spots": "0995bfbf8c317834",
+      "take": 0,
+      "topic": "42\nYour Future, Uncoded.",
+      "version": 1,
+      "words": "9a0b030d68835c80"
+    },
+    "director.inputs_digest": "d2c0bb6e98235f8c39d4",
+    "director.key": "b5eddf666b8ac944a270",
+    "hand_and_span.plan_key": "c62200473c987701",
+    "hand_and_span.preview_key": "7dce39b6cacf5544",
+    "hand_and_span.recipe_hash": "e5b5d7ea35b38838",
+    "hand_and_span.render_key": "1158d5dfb333585689b4",
+    "hand_and_span.render_n": 234,
+    "hand_and_span.shown": [
+      "piggy-bank",
+      "code"
+    ],
+    "hand_and_span.spec_memo": "c6529ef96476ec9a522e",
+    "hand_and_span.stored_recipe_hash": "b28961d285b921c7",
+    "hand_and_span.timing_key": "723fe93e721049ae",
+    "icons_only.plan_key": "3ee6ed99067cc191",
+    "icons_only.preview_key": "4907d41b78da4297",
+    "icons_only.recipe_hash": "44768f68bbf5f1d9",
+    "icons_only.render_key": "22f066160e36b6b2fc5c",
+    "icons_only.render_n": 234,
+    "icons_only.shown": [
+      "code"
+    ],
+    "icons_only.spec_memo": "6f19034161a42e016b79",
+    "icons_only.stored_recipe_hash": "bda202fd7bdd01f7",
+    "icons_only.timing_key": "392087a9ea597e54",
+    "scene.seconds": [
+      7.8
+    ],
+    "scene.trimmed_sec": 0.167,
+    "starting_draft.plan_key": "768b38adea9e8923",
+    "starting_draft.preview_key": "2cb63f52ce1458be",
+    "starting_draft.recipe_hash": "171fbbd3a7ecea08",
+    "starting_draft.render_key": "850f8a739c3caf2cd0d8",
+    "starting_draft.render_n": 234,
+    "starting_draft.shown": [
+      "piggy-bank",
+      "code"
+    ],
+    "starting_draft.spec_memo": "a638c6d796dfa3339b25",
+    "starting_draft.stored_recipe_hash": "ca61c4cb7fbb496f",
+    "starting_draft.timing_key": "01d0cd927c81e229"
+  }
+}

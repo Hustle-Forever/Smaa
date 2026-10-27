@@ -1,0 +1,161 @@
+[
+ [
+  "step",
+  "omni",
+  "Pattern: structure (2.png) — #2ed8e8, transparent background",
+  "done",
+  "the intro's own colour (its background #3d3c3d is neutral) · the left half of the frame, behind the speaker · entrance: left to right"
+ ],
+ [
+  "pattern",
+  "structure",
+  "#2ed8e8",
+  "the left half of the frame, behind the speaker",
+  "left_to_right",
+  {
+   "anchor": "left",
+   "placement": "left",
+   "reach": 0.5,
+   "rotate": 0,
+   "scale": 2.0
+  },
+  false
+ ],
+ [
+  "patch",
+  "omni",
+  [
+   "model",
+   "status"
+  ]
+ ],
+ [
+  "step",
+  "omni",
+  "Scene 1: Omni edit",
+  "running",
+  ""
+ ],
+ [
+  "mask",
+  "scene_1_c0_first.png"
+ ],
+ [
+  "omni",
+  "c0.mp4",
+  "EDIT the clip; keep and ' pattern' out.\nThe attached image is the TARGET: this clip's own frame with the brand pattern already laid into the left half of the frame, behind the speaker. Make the video look exactly like it: reproduce that exact line pattern there, with the same shapes, the same large scale, the same position and the same colour, as crisp solid lines, with the video's own background visible between the lines. The pattern is part of the BACKGROUND, BEHIND the speaker: the speaker stands in front of it, so their hair, head covering, face, body, clothes and hands cover it completely wherever they overlap it, exactly as in the image, and it stays behind them as they move. Never draw a single line over the speaker. Keep the pattern's own outline: on the right its bars end in their own tips at different points, exactly as in the image; never trim it to a straight edge or box it into a strip. Do not draw a panel, a solid block of colour, a checkerboard or any other texture behind it or instead of it. Do not write or draw anything else: no logo, no letters, no numbers, no colour codes. The speaker and everything the pattern does not cover stay exactly as shot. ENTRANCE: at the very first frame there is no pattern yet, just the original video. Over the first second the pattern's own lines fade in smoothly from LEFT to RIGHT: the lines themselves become visible progressively, starting at the frame's left edge and travelling towards the middle, passing BEHIND the speaker; then they hold still, exactly as in the attached image, for the rest of the clip. Nothing else is part of the entrance: no panel, card, frosted-glass sheet, white or grey shape, blur, haze, glow or light sweep appears at any moment, and the room stays exactly as shot the whole time.",
+  [
+   "scene_1_c0_target.png"
+  ],
+  [
+   "78380fe2be31f6b5"
+  ]
+ ],
+ [
+  "fit",
+  "scene_1_c0_raw.mp4",
+  "c0.mp4",
+  "scene_1_c0.mp4"
+ ],
+ [
+  "restore",
+  "scene_1_c0.mp4",
+  "c0.mp4",
+  "scene_1_c0_front.mp4",
+  [
+   [
+    "clear_bars",
+    false
+   ],
+   [
+    "clear_veil_sec",
+    3.0
+   ]
+  ]
+ ],
+ [
+  "mask",
+  "scene_1_c1_first.png"
+ ],
+ [
+  "omni",
+  "c1.mp4",
+  "EDIT the clip; keep and ' pattern' out.\nThe attached image is the TARGET: this clip's own frame with the brand pattern already laid into the left half of the frame, behind the speaker. Make the video look exactly like it: reproduce that exact line pattern there, with the same shapes, the same large scale, the same position and the same colour, as crisp solid lines, with the video's own background visible between the lines. The pattern is part of the BACKGROUND, BEHIND the speaker: the speaker stands in front of it, so their hair, head covering, face, body, clothes and hands cover it completely wherever they overlap it, exactly as in the image, and it stays behind them as they move. Never draw a single line over the speaker. Keep the pattern's own outline: on the right its bars end in their own tips at different points, exactly as in the image; never trim it to a straight edge or box it into a strip. Do not draw a panel, a solid block of colour, a checkerboard or any other texture behind it or instead of it. Do not write or draw anything else: no logo, no letters, no numbers, no colour codes. The speaker and everything the pattern does not cover stay exactly as shot. The pattern is already exactly as in the attached image from the first frame of this clip and holds still throughout: no entrance, no fade, no flicker.",
+  [
+   "scene_1_c1_target.png"
+  ],
+  [
+   "78380fe2be31f6b5"
+  ]
+ ],
+ [
+  "fit",
+  "scene_1_c1_raw.mp4",
+  "c1.mp4",
+  "scene_1_c1.mp4"
+ ],
+ [
+  "restore",
+  "scene_1_c1.mp4",
+  "c1.mp4",
+  "scene_1_c1_front.mp4",
+  [
+   [
+    "clear_bars",
+    false
+   ],
+   [
+    "clear_veil_sec",
+    0.0
+   ]
+  ]
+ ],
+ [
+  "concat",
+  [
+   "scene_1_c0_front.mp4",
+   "scene_1_c1_front.mp4"
+  ],
+  "scene_1.mp4"
+ ],
+ [
+  "patch",
+  "omni",
+  [
+   "provider"
+  ]
+ ],
+ [
+  "step",
+  "omni",
+  "Scene 1: edited",
+  "done",
+  "via None"
+ ],
+ [
+  "finish",
+  "omni",
+  "scene_1.mp4",
+  [
+   "scene_0"
+  ],
+  [
+   [
+    "cost_note",
+    "Omni is not metered here — check the provider console."
+   ],
+   [
+    "provider",
+    null
+   ],
+   [
+    "scenes_edited",
+    1
+   ],
+   [
+    "scenes_total",
+    1
+   ]
+  ]
+ ]
+]

@@ -1,0 +1,112 @@
+# --- FastAPI stack ----------------------------------------------------------
+fastapi>=0.110
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+sse-starlette>=2.1
+pydantic>=2.7
+pydantic-settings>=2.3
+apscheduler>=3.10
+
+# --- Object storage (MinIO in the compose stack, any S3) -------------------
+# services/s3_backend.py. Plain S3 API, so the same code works on real AWS S3.
+boto3>=1.40,<2
+
+# --- Database --------------------------------------------------------------
+psycopg[binary,pool]>=3.1
+pgvector>=0.3
+python-dotenv>=1.0
+
+# --- HTTP scraping / extraction --------------------------------------------
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+trafilatura>=1.12
+
+# --- OpenAI + token accounting + retries -----------------------------------
+openai>=1.50
+tiktoken>=0.7
+tenacity>=9.0
+
+# --- Image handling + perceptual hashing -----------------------------------
+Pillow>=10.0
+pillow-avif-plugin>=1.4
+imagehash>=4.3
+
+# --- Numeric (color palette, k-means) --------------------------------------
+numpy>=1.26
+scipy>=1.11
+
+# --- Video pipeline --------------------------------------------------------
+scenedetect[opencv]>=0.6
+# Pinned below 5: OpenCV 5 dropped the Haar cascades (cv2.CascadeClassifier)
+# that the Rebrand pattern planner uses to keep a pattern off the speaker's
+# face (services/pattern_planner.py). scenedetect pulls OpenCV in unpinned,
+# so without this the server got 5.0 and every pattern fell back to its
+# default place.
+opencv-python>=4.10,<5
+imageio-ffmpeg>=0.5
+yt-dlp>=2024.10
+# Rebrand: the speaker's matte (MODNet ONNX, fetched from the HF hub on first
+# use) that puts the speaker back in front of the Omni pattern. OpenCV's own
+# ONNX importer cannot load it (dynamic shapes), and mediapipe would pull a
+# second OpenCV; onnxruntime adds only itself and flatbuffers.
+onnxruntime>=1.20
+
+# --- Local CLIP (visual similarity). Pulls torch CPU on first install. ----
+# torch>=2.4 is NOT cosmetic. transformers>=5 turns torch OFF entirely below 2.4
+# (utils/import_utils.py: "Disabling PyTorch because PyTorch >= 2.4 is required"),
+# and transformers/integrations/accelerate.py then skips its guarded
+# `import torch.nn as nn` while still EVALUATING the annotation that names `nn`
+# (no `from __future__ import annotations` in that file). The result is that
+# `import sentence_transformers` dies with `NameError: name 'nn' is not defined`.
+# Nothing else pins this: sentence-transformers asks only for torch>=1.11, and
+# transformers declares torch>=2.4 solely under its optional [torch] extra — so
+# pip is free to leave an old torch in place. That is how B-roll broke (#32).
+torch>=2.4
+sentence-transformers>=3.0
+# Rebrand icons: word timing from local Whisper (rebrand_harness/words.py, the
+# ASR pipeline with return_timestamps="word"). An old transformers (4.30 is
+# still on some machines) ignores "word" and returns whole sentences, and the
+# icons quietly fall back to an estimate; the timing was measured on 5.8.1.
+# Nothing else pinned it (it came unpinned through sentence-transformers,
+# which caps it below 6). words.py also self-tests word timing on load.
+transformers>=5.0,<6
+
+# --- Owner-uploaded document extraction (for Agent 2 later) ----------------
+pymupdf>=1.23
+python-docx>=1.0
+
+# --- Social-listening report → PDF (services/social_report_pdf.py) ---------
+# Pure Python: no cairo/pango/wkhtmltopdf, so python:3.12-slim needs no extra
+# apt packages. Uses the base-14 core fonts only — nothing to install at runtime.
+reportlab>=4,<6
+
+# --- Vertex AI (Gemini + Veo) for the Producer Agent -----------------------
+# Auth: ADC via `gcloud auth application-default login` (no key file).
+google-genai>=1.0
+google-cloud-storage>=2.18
+
+# --- Claude reasoning brain for the agentic video editor -------------------
+# Claude-on-Vertex uses the SAME ADC as Gemini (no extra key); the [vertex]
+# extra pulls the AnthropicVertex client. Falls back to the direct Anthropic
+# API iff ANTHROPIC_API_KEY is set. See services/model_gateway.py.
+anthropic[vertex]>=0.112  # output_config/effort + adaptive thinking (model_gateway)
+
+# --- Assets Library (v3): font metadata extraction (.ttf/.otf/.woff/woff2) -
+fontTools>=4.50
+# Rebrand icons: the words on a chip icon are shaped by HarfBuzz and drawn by
+# our own rasteriser (rebrand_harness/label_font.py), so no system font
+# library is needed. uharfbuzz is a self-contained wheel (HarfBuzz built in):
+# the VPS needs only a Docker rebuild. PINNED: a new HarfBuzz may shape the
+# same words differently, and stored chips must re-render byte for byte
+# (test_icons_render.py locks the text paths).
+uharfbuzz==0.56.*
+
+# --- Producer Roadmap: reminder email for scheduled Instagram posts --------
+aiosmtplib>=3.0
+# CA bundle for SMTP TLS — fixes macOS Python "certificate verify failed".
+certifi>=2024.0
+
+# --- Tests (local only — run via ./run_tests.sh; no CI) ---------------------
+pytest>=8.3

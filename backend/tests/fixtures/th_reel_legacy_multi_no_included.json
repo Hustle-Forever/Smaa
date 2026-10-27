@@ -1,0 +1,65 @@
+{
+  "case": "multi_no_included",
+  "about": "Every scene excluded: failed, nothing sent.",
+  "run": {
+    "id": 9207,
+    "metadata": {
+      "aspect_ratio": "9:16",
+      "composition_status": "rendering",
+      "scene_count": 2,
+      "scenes": [
+        {
+          "index": 0,
+          "animation_id": 481,
+          "dialogue": "Line 1.",
+          "excluded": true
+        },
+        {
+          "index": 1,
+          "animation_id": 482,
+          "dialogue": "Line 2.",
+          "excluded": true
+        }
+      ],
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": null,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "intro_animation_id": 484
+    }
+  },
+  "world": {
+    "anims": {
+      "481": {
+        "file": "yas_producer/animations/anim-481.mp4",
+        "duration_sec": 8
+      },
+      "482": {
+        "file": "yas_producer/animations/anim-482.mp4",
+        "duration_sec": 8
+      },
+      "484": {
+        "file": "yas_producer/animations/anim-484.mp4",
+        "duration_sec": 4
+      }
+    }
+  },
+  "golden": {
+    "posts": [],
+    "patches": [
+      {
+        "run_id": 9207,
+        "patch": {
+          "composition_status": "failed",
+          "composition_error": "multi-scene render with no included scenes"
+        }
+      }
+    ],
+    "lookups": []
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "case": "single_asset_fallback_16x9",
+  "about": "16:9; main only by the legacy veo_animation_id with no duration_sec (8 s default); the intro's Veo and card are missing so its reference asset is used; the outro has nothing (omitted, its duration still sent).",
+  "run": {
+    "id": 9103,
+    "metadata": {
+      "aspect_ratio": "16:9",
+      "composition_status": "rendering",
+      "intro_excluded": false,
+      "outro_excluded": false,
+      "refs": {
+        "bg_asset_id": null,
+        "intro_asset_id": 41,
+        "outro_asset_id": null,
+        "intro_video_upload_id": null,
+        "outro_video_upload_id": null
+      },
+      "veo_animation_id": 371,
+      "intro_animation_id": 372,
+      "intro_image_id": 905
+    }
+  },
+  "world": {
+    "anims": {
+      "371": {
+        "file": "yas_producer/animations/anim-371.mp4",
+        "duration_sec": null
+      },
+      "372": {
+        "file": null,
+        "duration_sec": 4
+      }
+    },
+    "cards": {
+      "905": null
+    },
+    "assets": {
+      "41": "assets/refs/intro-41.png"
+    }
+  },
+  "golden": {
+    "posts": [
+      {
+        "method": "POST",
+        "url": "<REMOTION>/render",
+        "content_type": "application/json",
+        "body": {
+          "template": "talking-head-v2-with-cards",
+          "props": {
+            "intro_image_path": null,
+            "intro_video_path": "<DATA>/assets/refs/intro-41.png",
+            "main_video_path": "<DATA>/yas_producer/animations/anim-371.mp4",
+            "outro_image_path": null,
+            "outro_video_path": null,
+            "intro_duration_sec": 4.0,
+            "outro_duration_sec": 4.0,
+            "fade_sec": 0.4,
+            "main_duration_sec": 8,
+            "width": 1920,
+            "height": 1080
+          },
+          "output_path": "<ROOT>/yas_producer/talking-head-v2/9103/final.mp4"
+        }
+      }
+    ],
+    "patches": [
+      {
+        "run_id": 9103,
+        "patch": {
+          "render_job_id": "job-golden",
+          "composition_output_path": "yas_producer/talking-head-v2/9103/final.mp4"
+        }
+      }
+    ],
+    "lookups": [
+      [
+        "veo",
+        371
+      ],
+      [
+        "veo",
+        372
+      ],
+      [
+        "card",
+        905
+      ],
+      [
+        "asset",
+        41
+      ],
+      [
+        "duration",
+        372
+      ],
+      [
+        "duration",
+        371
+      ]
+    ]
+  }
+}

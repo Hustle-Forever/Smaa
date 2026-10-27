@@ -1,0 +1,17 @@
+# Keep secrets and multi-GB local artifacts out of the build context / image.
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+# Local generated media + caches — provided by the shared volume at runtime.
+data/
+# Secrets — provided at runtime via env_file, never baked into the image.
+.env
+.env.*
+!.env.example
+# Misc
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
