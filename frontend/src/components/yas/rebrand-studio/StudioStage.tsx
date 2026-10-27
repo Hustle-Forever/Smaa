@@ -34,7 +34,8 @@
 //              end of the scene says so at its top right ("Ends at 7.8 s ·
 //              Remake", `endChip`: made again to this end, free)
 //   Original   the part's first frame, and the scene itself on Play — up to
-//              the scene's end when one is set by hand (`originalEnd`)
+//              the scene's end when one is set by hand (`originalEnd`), and
+//              from a main scene's start when it has one (`originalStart`)
 //   Next, on the Icons tab (or played)   Next in motion (StagePlayer): the
 //              draft's exact video, or the scene (or the version added to)
 //              playing with a canvas of the patterns and the plan's icons
@@ -154,7 +155,7 @@ function StageCard({ children, tone = "neutral" }: { children: ReactNode; tone?:
     <div className="absolute inset-x-3 bottom-[12%] flex justify-center">
       <div
         className={`w-full max-w-[20rem] rounded-2xl px-4 py-3 text-xs shadow-lift backdrop-blur-sm ${
-          tone === "danger" ? "bg-white/95 text-fg" : "bg-black/75 text-white"
+          tone === "danger" ? "bg-white/95 text-black" : "bg-black/75 text-white"
         }`}
       >
         {children}
@@ -226,6 +227,7 @@ export function StudioStage({
   patternHandles = null,
   onPickPattern = null,
   originalEnd = null,
+  originalStart = null,
   endChip = null,
   className = "",
 }: {
@@ -321,6 +323,9 @@ export function StudioStage({
   onPickPattern?: ((id: string | null) => void) | null;
   /** The scene's end set by hand (s): Original plays up to it. */
   originalEnd?: number | null;
+  /** A main scene's start (s; the reel skips the clip before it): Original
+   *  plays from it. */
+  originalStart?: number | null;
   /** A version made for another end of the scene: "Ends at 7.8 s ·
    *  Remake" (made again to this end). */
   endChip?: { label: string; title: string; disabled: boolean; onRemake: () => void } | null;
@@ -406,8 +411,16 @@ export function StudioStage({
     sub = COPY.captionOriginalSub;
     what = "the original";
     desired = sceneFrame;
-    // Up to the scene's end, when one is set by hand (a media fragment).
-    video = scene?.video_url ? (originalEnd != null ? `${scene.video_url}#t=0,${originalEnd.toFixed(3)}` : scene.video_url) : null;
+    // From the scene's start and up to its end, when either is set by hand
+    // (a media fragment).
+    const from = originalStart != null && originalStart > 0 ? originalStart.toFixed(3) : "0";
+    video = scene?.video_url
+      ? originalEnd != null
+        ? `${scene.video_url}#t=${from},${originalEnd.toFixed(3)}`
+        : from !== "0"
+          ? `${scene.video_url}#t=${from}`
+          : scene.video_url
+      : null;
   } else if (version && versionNo) {
     title = COPY.version(versionNo);
     what = `version ${versionNo}`;
@@ -540,7 +553,7 @@ export function StudioStage({
   const canvas = (
     <div
       ref={canvasRef}
-      className={`relative overflow-hidden rounded-xl bg-fg shadow-soft transition-shadow duration-300 ${
+      className={`relative overflow-hidden rounded-xl bg-black shadow-soft transition-shadow duration-300 ${
         onNext && preview.pulse ? "ring-2 ring-accent ring-offset-2" : ""
       }`}
       style={size ? { width: size.w, height: size.h } : { width: "100%", aspectRatio: String(aspect) }}

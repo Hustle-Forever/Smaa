@@ -134,6 +134,12 @@ start("tile: the plan's state table (§4.2)");
   check(reb.badge === "rebranded" && reb.badgeTitle === "v2 is in the reel" && !reb.problem && !reb.making, "Rebranded, title v2 is in the reel");
   const trim = tileState(T("scene_0", "main", { end: { frame: 225, auto: 235, user: 225, full: 240 } }));
   check(trim.badge === "trimmed" && trim.badgeTitle === "Ends at 7.5 s", `Trimmed: ${trim.badgeTitle}`);
+  const head = tileState(T("scene_0", "main", { end: { frame: 235, auto: 235, user: null, full: 240, start: 36 } }));
+  check(head.badge === "trimmed" && head.badgeTitle === "Starts at 1.2 s", `Trimmed at its head: ${head.badgeTitle}`);
+  const ends = tileState(T("scene_0", "main", { end: { frame: 225, auto: 235, user: 225, full: 240, start: 36 } }));
+  check(ends.badgeTitle === "Starts at 1.2 s, ends at 7.5 s", `Trimmed both sides: ${ends.badgeTitle}`);
+  check(tileState(T("scene_0", "main", { end: { frame: 235, auto: 235, user: null, full: 240, start: null } })).badge === null,
+    "no start (null): untouched");
   const both = tileState(T("scene_0", "main", { ships: 11, end: { frame: 200, auto: null, user: 200, full: 240 } }), { no });
   check(both.badge === "rebranded", "a version AND an end: Rebranded");
   const making = tileState(T("scene_0", "main", { ships: 11, making: 13, pick: { version_id: 13, state: "running" } }), { no });

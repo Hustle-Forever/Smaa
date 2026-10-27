@@ -233,7 +233,7 @@ export function PatternRow({
           onClick={onToggle}
           className="flex-1 min-w-0 flex items-center gap-2.5 rounded-lg px-1 py-0.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
         >
-          <span className={`h-9 w-12 shrink-0 overflow-hidden rounded-md bg-fg ${el.enabled ? "" : "opacity-40"}`}>
+          <span className={`h-9 w-12 shrink-0 overflow-hidden rounded-md bg-black ${el.enabled ? "" : "opacity-40"}`}>
             {entry && <img src={previewSrc(entry)} alt="" draggable={false} className="h-full w-full object-contain" />}
           </span>
           <span className={`min-w-0 ${el.enabled ? "" : "opacity-60"}`}>

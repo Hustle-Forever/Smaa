@@ -837,6 +837,13 @@ def _reel():
     return th_reel
 
 
+def _music():
+    # Late, as _reel: th_reel_music imports this module too.
+    from ..services import th_reel_music
+
+    return th_reel_music
+
+
 def _instance() -> str:
     return _reel().INSTANCE_ID
 
@@ -1093,6 +1100,15 @@ async def _poll_once() -> None:
             await _check_render(run)
         except Exception:
             log.exception("yas_th: check render crashed for run=%s", run.get("id"))
+
+    # Phase 4 — background music under finished reels (services/th_reel_music):
+    # a Suno track to collect, a reel finalized again to put its music under
+    # again. Its own task, one at a time, so a slow download or mix never
+    # holds the phases above; a failure there is logged, never this loop's.
+    try:
+        _music().kick()
+    except Exception:
+        log.exception("yas_th_v2_composition_poller: music phase failed to start")
 
 
 async def _loop() -> None:

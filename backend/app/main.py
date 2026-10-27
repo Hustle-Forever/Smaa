@@ -45,6 +45,7 @@ from .routers import (
     producer_assets,
     reports as reports_router,
     scheduler as scheduler_router,
+    trend_radar as trend_radar_router,
     settings,
     trend_finder,
     website,
@@ -293,6 +294,7 @@ app.include_router(campaigns.router)         # autonomous campaigns ("Producer" 
 app.include_router(scheduler_router.router)  # /api/scheduler/status
 app.include_router(trend_finder.router)      # Trend Finder: competitor scanning
 app.include_router(general_trends.router)    # Trend Finder: general internet trends
+app.include_router(trend_radar_router.router)  # Trend Radar: daily AI + coding top 10
 app.include_router(reports_router.router)     # Social-listening report (JSON + PDF)
 app.include_router(yas_producer.router)      # Yas Producer chat
 app.include_router(rebrand_router.router)    # TH v2 Rebrand experiment (Omni)

@@ -11,7 +11,11 @@
 //                 0:00, paused, and `ended` counts it (the stage goes back
 //                 to its still). The scene's end set by hand (`end`, s) is
 //                 its end: play stops there as at the video's own, and no
-//                 seek goes past it.
+//                 seek goes past it. A main scene's start (`start`, s: the
+//                 reel skips the clip before it) is its start the same
+//                 way: play begins there, the end goes back there, and no
+//                 seek goes before it. The clock stays in the clip's own
+//                 seconds either way.
 // useIconMoment   on a stop, the exact frame at that time (POST
 //                 /icons/moment, or /house/moment for a draft made in house:
 //                 built the way the run builds it), swapped in for the video
@@ -52,13 +56,18 @@ export interface IconPlayer {
   tick: (t: number) => void;
 }
 
-export function useIconPlayer(end: number | null = null): IconPlayer {
+export function useIconPlayer(end: number | null = null, start: number | null = null): IconPlayer {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const tRef = useRef(0);
+  // The scene's start (s; 0: the clip's first frame): where the clock rests
+  // before anything moves it.
+  const from = start != null && start > 0 ? start : 0;
+  const tRef = useRef(from);
   // The scene's end set by hand (s): read by the clock as it runs.
   const endRef = useRef(end);
   endRef.current = end;
-  const [t, setT] = useState(0);
+  const startRef = useRef(from);
+  startRef.current = from;
+  const [t, setT] = useState(from);
   const [playing, setPlaying] = useState(false);
   const wantPlay = useRef(false);
   const [muted, setMuted] = useState(false);
@@ -68,20 +77,21 @@ export function useIconPlayer(end: number | null = null): IconPlayer {
   const lastPush = useRef(0);
   const n = useRef(0);
 
-  /** Played to its end: back to the start, paused (the clip's last frame is
-   *  never left on screen — a Veo clip can end on a flash of another shot),
-   *  and `ended` counts it. No exact frame is asked for: the user did not
-   *  stop there. */
+  /** Played to its end: back to the start (the scene's, when it has one),
+   *  paused (the clip's last frame is never left on screen — a Veo clip can
+   *  end on a flash of another shot), and `ended` counts it. No exact frame
+   *  is asked for: the user did not stop there. */
   const finish = useCallback((v: HTMLVideoElement | null) => {
+    const at = startRef.current;
     wantPlay.current = false;
     setPlaying(false);
     if (v) {
       v.pause();
-      v.currentTime = 0;
+      v.currentTime = at;
     }
-    tRef.current = 0;
+    tRef.current = at;
     lastPush.current = performance.now();
-    setT(0);
+    setT(at);
     setEnded((k) => k + 1);
   }, []);
 
@@ -101,6 +111,16 @@ export function useIconPlayer(end: number | null = null): IconPlayer {
   }, [finish]);
 
   const rest = useCallback((at: number) => setStop({ t: at, n: ++n.current }), []);
+
+  // The start moved past the clock (its grip dragged right): the clock goes
+  // there, at rest. No exact frame is asked for: the user did not stop there.
+  useEffect(() => {
+    if (wantPlay.current || tRef.current >= from) return;
+    tRef.current = from;
+    setT(from);
+    const v = videoRef.current;
+    if (v) v.currentTime = from;
+  }, [from]);
 
   const attach = useCallback(
     (v: HTMLVideoElement | null) => {
@@ -152,7 +172,10 @@ export function useIconPlayer(end: number | null = null): IconPlayer {
     const v = videoRef.current;
     if (!v) return;
     const last = Math.min(duration || Infinity, endRef.current ?? Infinity);
-    if (v.ended || (Number.isFinite(last) && tRef.current >= last - 0.05)) v.currentTime = tRef.current = 0;
+    // At its end, or before its start: from the start.
+    if (v.ended || (Number.isFinite(last) && tRef.current >= last - 0.05) || tRef.current < startRef.current) {
+      v.currentTime = tRef.current = startRef.current;
+    }
     void v.play().catch(() => {
       wantPlay.current = false;
       setPlaying(false);
@@ -173,7 +196,7 @@ export function useIconPlayer(end: number | null = null): IconPlayer {
   const seek = useCallback(
     (to: number, opts: { play?: boolean } = {}) => {
       const last = Math.min(duration || Infinity, endRef.current ?? Infinity);
-      const at = Math.max(0, Number.isFinite(last) ? Math.min(to, last - 1 / FPS) : to);
+      const at = Math.max(startRef.current, Number.isFinite(last) ? Math.min(to, last - 1 / FPS) : to);
       publish(at, true);
       const v = videoRef.current;
       if (v) v.currentTime = at;

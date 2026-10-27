@@ -15,10 +15,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useModalChrome } from "../../lib/useModalChrome";
 import { createPortal } from "react-dom";
-import { Link2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  FileVideo,
+  History as HistoryIcon,
+  Link2,
+  Loader2,
+  Play,
+  Search,
+  X,
+} from "lucide-react";
 
 import { useYasLibraryStore } from "../../lib/store";
-import { fmtRel } from "../../lib/format";
+import { fmtNumber, fmtRel } from "../../lib/format";
+import { useKCanvas } from "../../lib/useStudioCanvas";
 import { api } from "../../lib/api";
 import { libraryItemHash } from "../../lib/producerHash";
 import { useCopyLink } from "../../lib/useCopyLink";
@@ -43,50 +55,33 @@ function roadmapStepLabel(step?: string | null): string | null {
 
 type TypeFilter = "all" | YasLibraryType;
 
-const TYPE_META: Record<
-  YasLibraryType,
-  { label: string; dot: string; pill: string }
-> = {
-  talking_head: {
-    label: "Human Element Video",
-    dot: "bg-violet-500/80",
-    pill: "bg-violet-500/15 text-violet-600",
-  },
-  talking_head_v2: {
-    label: "Human Element Video",
-    dot: "bg-fuchsia-500/80",
-    pill: "bg-fuchsia-500/15 text-fuchsia-600",
-  },
-  poster: {
-    label: "Poster",
-    dot: "bg-blue-500/80",
-    pill: "bg-blue-500/15 text-blue-600",
-  },
-  poster_human: {
-    label: "Poster + Human",
-    dot: "bg-success/80",
-    pill: "bg-success/15 text-emerald-600",
-  },
-  animation: {
-    label: "Animation",
-    dot: "bg-orange-500/80",
-    pill: "bg-orange-500/15 text-orange-600",
-  },
-  video_editor: {
-    label: "Video Editor",
-    dot: "bg-cyan-500/80",
-    pill: "bg-cyan-500/15 text-cyan-600",
-  },
-  general_video: {
-    label: "General AI Video",
-    dot: "bg-teal-500/80",
-    pill: "bg-teal-500/15 text-teal-600",
-  },
-  broll: {
-    label: "B-roll",
-    dot: "bg-warning/80",
-    pill: "bg-warning/15 text-amber-600",
-  },
+// What each kind of work is called on a tile. Words, not colours: the 42
+// palette is reserved for state (cyan finished, purple in progress, coral
+// didn't work), so a colour per type would compete with it.
+const TYPE_META: Record<YasLibraryType, { label: string }> = {
+  talking_head: { label: "Human Element Video" },
+  talking_head_v2: { label: "Human Element Video" },
+  poster: { label: "Poster" },
+  poster_human: { label: "Poster + Human" },
+  animation: { label: "Animation" },
+  video_editor: { label: "Video Editor" },
+  general_video: { label: "General AI Video" },
+  broll: { label: "B-roll" },
+};
+
+// Status words people understand, for the tile and the detail window.
+const LIFECYCLE_META: Record<Lifecycle, { label: string; dot: string }> = {
+  finished: { label: "Finished", dot: "bg-k-cyan" },
+  pending: { label: "In progress", dot: "bg-k-purple" },
+  failed: { label: "Didn't work", dot: "bg-k-coral" },
+};
+const STATUS_WORDS: Record<string, string> = {
+  ready: "Ready",
+  saved_to_assets: "Saved to assets",
+  generating: "Being made",
+  queued: "Waiting to start",
+  failed: "Didn't work",
+  draft: "Draft",
 };
 
 type Lifecycle = "pending" | "finished" | "failed";
@@ -123,6 +118,8 @@ export function YasLibrary({
   initialOpen?: { id: number; type: YasLibraryType } | null;
 } = {}) {
   const store = useYasLibraryStore();
+  // The 42 theme ground while the Library is open.
+  useKCanvas();
   const [subtab, setSubtab] = useState<"history" | "scheduled">(initialSubtab ?? "history");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "finished">("all");
@@ -162,9 +159,15 @@ export function YasLibrary({
   // exactly once. If it isn't in the (capped) list, fall back to a minimal stub
   // so the type-routed detail modal still hydrates it by id.
   useEffect(() => {
-    if (!initialOpen || didAutoOpen.current || store.loading) return;
+    if (!initialOpen || didAutoOpen.current) return;
+    // Read the live store, not this render's snapshot: the fetch above starts in
+    // the same commit, so the snapshot still said idle + empty and the stub (no
+    // picture, no Continue editing) opened before the real item had arrived.
+    const live = useYasLibraryStore.getState();
+    const found = live.items.find((it) => it.id === initialOpen.id && it.type === initialOpen.type);
+    // Not in the list yet: wait for this page's own fetch to finish.
+    if (!found && (live.loading || (live.lastFetchedAt == null && !live.error))) return;
     didAutoOpen.current = true;
-    const found = store.items.find((it) => it.id === initialOpen.id && it.type === initialOpen.type);
     setOpenItem(found ?? ({ id: initialOpen.id, type: initialOpen.type, topic: null } as unknown as YasLibraryItem));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOpen, store.loading, store.items]);
@@ -219,6 +222,13 @@ export function YasLibrary({
     [typeFiltered, statusFilter],
   );
 
+  // Words typed in the search box narrow the grid by title. Purely in the
+  // browser, over the list that is already loaded.
+  const [query, setQuery] = useState("");
+  const searched = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? items.filter((it) => (it.topic ?? "").toLowerCase().includes(q)) : items;
+  }, [items, query]);
   // Windowed rendering: only mount the first `visibleCount` tiles and reveal
   // more as the user scrolls. Off-screen tiles aren't in the DOM at all, so
   // their media never hits the network — first paint stays cheap even with a
@@ -228,9 +238,9 @@ export function YasLibrary({
   const [visibleCount, setVisibleCount] = useState(PAGE);
   useEffect(() => {
     setVisibleCount(PAGE);
-  }, [typeFilter, statusFilter, subtab]);
-  const shown = useMemo(() => items.slice(0, visibleCount), [items, visibleCount]);
-  const hasMore = visibleCount < items.length;
+  }, [typeFilter, statusFilter, subtab, query]);
+  const shown = useMemo(() => searched.slice(0, visibleCount), [searched, visibleCount]);
+  const hasMore = visibleCount < searched.length;
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -246,187 +256,231 @@ export function YasLibrary({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [hasMore, items.length]);
+  }, [hasMore, searched.length]);
+
+  // What the summary tiles count: every visible item, by lifecycle (all types).
+  const lifecycleCounts = useMemo(() => {
+    const c = { finished: 0, pending: 0, failed: 0 };
+    for (const it of visibleItems) c[lifecycleOf(it)] += 1;
+    return c;
+  }, [visibleItems]);
+
+
+  const TYPE_CHIPS: Array<{ key: TypeFilter; label: string; count: number }> = [
+    { key: "all", label: "All", count: counts.all },
+    { key: "talking_head_v2", label: "Human Element Video", count: counts.talking_head_v2 },
+    { key: "poster", label: "Poster", count: counts.poster },
+    { key: "poster_human", label: "Poster + Human", count: counts.poster_human },
+    { key: "animation", label: "Animation", count: counts.animation },
+    { key: "video_editor", label: "Video Editor", count: counts.video_editor },
+    { key: "general_video", label: "General AI Video", count: counts.general_video },
+    { key: "broll", label: "B-roll", count: counts.broll },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* Library sub-tabs */}
-      <div className="flex items-center gap-1.5">
-        {(["history", "scheduled"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setSubtab(t)}
-            className={[
-              "px-3 py-1 rounded-full border text-[13px] font-medium transition-colors",
-              subtab === t
-                ? "border-accent bg-accent/8 text-fg"
-                : "border-border bg-bg-subtle text-muted hover:bg-bg-muted",
-            ].join(" ")}
-          >
-            {t === "history" ? "History" : "Scheduled"}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-6 animate-pageEnter">
+      {/* Page title, 42abudhabi.ae style */}
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-2">
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-[13px] font-medium text-fg/55">Library</p>
+          <h1 className="k-display text-[32px] md:text-[42px] text-fg">
+            <span className="k-code" aria-hidden>&gt; </span>Your work
+          </h1>
+          <p className="text-[15px] text-fg/60 max-w-2xl">
+            Everything you have made, and every post booked to go out. Open any piece to watch it, download it or keep working on it.
+          </p>
+        </div>
+        {/* History / Scheduled */}
+        <nav aria-label="Library sections" className="inline-flex gap-0.5 p-0.5 bg-k-inset ring-1 ring-k-border shrink-0">
+          {(["history", "scheduled"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setSubtab(t)}
+              aria-current={subtab === t ? "page" : undefined}
+              className={[
+                "h-9 px-4 inline-flex items-center gap-2 text-[12.5px] font-bold uppercase tracking-[0.05em] transition-colors",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-k-btn",
+                subtab === t ? "bg-k-btn text-k-onbtn" : "text-fg/65 hover:text-fg hover:bg-k-surface",
+              ].join(" ")}
+            >
+              {t === "history" ? <HistoryIcon className="w-4 h-4" strokeWidth={1.8} aria-hidden /> : <CalendarClock className="w-4 h-4" strokeWidth={1.8} aria-hidden />}
+              {t === "history" ? "History" : "Scheduled"}
+            </button>
+          ))}
+        </nav>
+      </header>
 
       {subtab === "scheduled" ? (
         <ScheduledQueue />
       ) : (
       <>
-      {/* Filter bar */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip
-            active={typeFilter === "all"}
-            onClick={() => setTypeFilter("all")}
-            label="All"
-            count={counts.all}
+      {/* Summary tiles: also the status filter (All / Finished / In progress). */}
+      <section aria-label="Your work at a glance" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryTile
+          label="All work"
+          value={counts.all}
+          hint="Everything in the library"
+          active={statusFilter === "all"}
+          onClick={() => setStatusFilter("all")}
+        />
+        <SummaryTile
+          label="Finished"
+          value={lifecycleCounts.finished}
+          hint="Ready to caption and post"
+          dot="bg-k-cyan"
+          active={statusFilter === "finished"}
+          onClick={() => setStatusFilter("finished")}
+        />
+        <SummaryTile
+          label="In progress"
+          value={lifecycleCounts.pending}
+          hint="Still being made, or a draft"
+          dot="bg-k-purple"
+          active={statusFilter === "pending"}
+          onClick={() => setStatusFilter("pending")}
+        />
+        <SummaryTile
+          label="Didn't work"
+          value={lifecycleCounts.failed}
+          hint="Open one to see what happened"
+          dot="bg-k-coral"
+        />
+      </section>
+
+      {/* Search + type filter */}
+      <section aria-label="Filter your work" className="k-panel p-3 md:p-4 space-y-3">
+        <label className="flex items-center gap-2.5 h-11 px-3.5 bg-k-inset ring-1 ring-k-border focus-within:ring-2 focus-within:ring-k-btn">
+          <Search className="w-4 h-4 text-fg/50 shrink-0" strokeWidth={1.8} aria-hidden />
+          <span className="sr-only">Search your work by title</span>
+          <input
+            id="library-search"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by title, for example Piscine"
+            className="flex-1 min-w-0 bg-transparent text-[14px] text-fg placeholder:text-fg/40 focus:outline-none"
           />
-          <Chip
-            active={typeFilter === "talking_head_v2"}
-            onClick={() => setTypeFilter("talking_head_v2")}
-            label="Human Element Video"
-            count={counts.talking_head_v2}
-            dot={TYPE_META.talking_head_v2.dot}
-          />
-          <Chip
-            active={typeFilter === "poster"}
-            onClick={() => setTypeFilter("poster")}
-            label="Poster"
-            count={counts.poster}
-            dot={TYPE_META.poster.dot}
-          />
-          <Chip
-            active={typeFilter === "poster_human"}
-            onClick={() => setTypeFilter("poster_human")}
-            label="Poster + Human"
-            count={counts.poster_human}
-            dot={TYPE_META.poster_human.dot}
-          />
-          <Chip
-            active={typeFilter === "animation"}
-            onClick={() => setTypeFilter("animation")}
-            label="Animation"
-            count={counts.animation}
-            dot={TYPE_META.animation.dot}
-          />
-          <Chip
-            active={typeFilter === "video_editor"}
-            onClick={() => setTypeFilter("video_editor")}
-            label="Video Editor"
-            count={counts.video_editor}
-            dot={TYPE_META.video_editor.dot}
-          />
-          <Chip
-            active={typeFilter === "general_video"}
-            onClick={() => setTypeFilter("general_video")}
-            label="General AI Video"
-            count={counts.general_video}
-            dot={TYPE_META.general_video.dot}
-          />
-          <Chip
-            active={typeFilter === "broll"}
-            onClick={() => setTypeFilter("broll")}
-            label="B-roll"
-            count={counts.broll}
-            dot={TYPE_META.broll.dot}
-          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="w-7 h-7 flex items-center justify-center text-fg/55 hover:text-fg hover:bg-k-surface"
+            >
+              <X className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            </button>
+          )}
+        </label>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Type of work">
+          {TYPE_CHIPS.map((c) => (
+            <Chip
+              key={c.key}
+              active={typeFilter === c.key}
+              onClick={() => setTypeFilter(c.key)}
+              label={c.label}
+              count={c.count}
+            />
+          ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip
-            active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
-            label="All status"
-            count={statusCounts.all}
-          />
-          <Chip
-            active={statusFilter === "pending"}
-            onClick={() => setStatusFilter("pending")}
-            label="Pending"
-            count={statusCounts.pending}
-            dot="bg-warning/80"
-          />
-          <Chip
-            active={statusFilter === "finished"}
-            onClick={() => setStatusFilter("finished")}
-            label="Finished"
-            count={statusCounts.finished}
-            dot="bg-success/80"
-          />
-        </div>
-      </div>
+      </section>
 
       {/* States */}
       {store.loading && store.items.length === 0 && (
-        <p className="text-sm text-muted text-center py-12">Loading history…</p>
-      )}
-      {store.error && (
-        <p className="text-sm text-danger text-center py-12">
-          Couldn’t load history: {store.error}
-        </p>
-      )}
-      {!store.loading && !store.error && store.items.length === 0 && (
-        <div className="text-center py-16 space-y-1.5">
-          <p className="text-sm text-fg">No past work yet.</p>
-          <p className="text-xs text-muted">
-            Generated posters and talking-head videos will show up here.
-          </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" aria-busy="true" aria-label="Loading your work">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] bg-fg/[0.05] animate-pulse" />
+          ))}
         </div>
       )}
-      {!store.loading && store.items.length > 0 && items.length === 0 && (
-        <p className="text-sm text-muted text-center py-12">
-          Nothing matches this filter.
-        </p>
+      {store.error && (
+        <div className="k-panel px-5 py-4 flex items-start gap-3" role="alert">
+          <AlertTriangle className="w-5 h-5 text-k-danger shrink-0 mt-0.5" strokeWidth={1.8} aria-hidden />
+          <div className="space-y-0.5 min-w-0">
+            <p className="text-[14px] font-semibold text-fg">Couldn't load your work</p>
+            <p className="text-[13px] text-fg/60 break-words">{store.error}</p>
+          </div>
+        </div>
+      )}
+      {!store.loading && !store.error && store.items.length === 0 && (
+        <EmptyLibrary
+          title="Nothing made yet"
+          body="Posters, videos and edits you make in Ideation show up here."
+          action={<a href="#producer" className="k-btn k-btn-sm mt-1">Make something</a>}
+        />
+      )}
+      {!store.loading && store.items.length > 0 && searched.length === 0 && (
+        <EmptyLibrary
+          title={query.trim() ? `Nothing matches "${query.trim()}"` : "Nothing matches this filter"}
+          body={query.trim() ? "Try a shorter word, or clear the search." : "Pick another type or status above."}
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setTypeFilter("all");
+                setStatusFilter("all");
+              }}
+              className="k-btn-ghost h-9 px-3.5 text-[12.5px] mt-1"
+            >
+              Show everything
+            </button>
+          }
+        />
       )}
 
       {/* Grid */}
-      {items.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {shown.map((it) => {
-            const stepLabel = roadmapStepLabel(it.roadmap_step);
-            return (
-              <div key={`${it.type}-${it.id}`} className="relative group">
-                <LibraryTile item={it} onOpen={() => setOpenItem(it)} />
-                {/* Copy a shareable link to this item (appears on hover). */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    copyItemLink(it);
-                  }}
-                  title="Copy a shareable link to this item"
-                  aria-label="Copy link to this item"
-                  className="absolute top-2 left-2 z-10 p-1 rounded-full bg-black/45 text-white/90 hover:bg-black/70 opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
-                >
-                  <Link2 className="w-3 h-3" />
-                </button>
-                {/* Mid-roadmap → a direct "Continue → <Step>" resume pill (the
-                    roadmap self-hydrates to this exact step). */}
-                {stepLabel && onContinue && (
+      {searched.length > 0 && (
+        <>
+          <p className="text-[13px] text-fg/55">
+            Showing <b className="font-semibold text-fg tabular-nums">{fmtNumber(searched.length)}</b>{" "}
+            {searched.length === 1 ? "piece" : "pieces"}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {shown.map((it) => {
+              const stepLabel = roadmapStepLabel(it.roadmap_step);
+              return (
+                <div key={`${it.type}-${it.id}`} className="relative group">
+                  <LibraryTile item={it} onOpen={() => setOpenItem(it)} />
+                  {/* Copy a shareable link to this item (appears on hover). */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onContinue(it.id, it.type);
+                      copyItemLink(it);
                     }}
-                    title={`Resume this project at ${stepLabel}`}
-                    className="absolute top-2 right-2 z-10 text-3xs font-semibold px-2 py-1 rounded-full bg-accent text-white shadow-md hover:brightness-110 transition"
+                    title="Copy a shareable link to this item"
+                    aria-label="Copy link to this item"
+                    className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-black/70 text-white hover:bg-black/90 opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
                   >
-                    Continue → {stepLabel}
+                    <Link2 className="w-3.5 h-3.5" strokeWidth={2} />
                   </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {/* Mid-roadmap → a direct "Continue → <Step>" resume button (the
+                      roadmap self-hydrates to this exact step). */}
+                  {stepLabel && onContinue && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onContinue(it.id, it.type);
+                      }}
+                      title={`Resume this project at ${stepLabel}`}
+                      className="absolute top-10 left-2 z-10 max-w-[calc(100%-1rem)] inline-flex items-center gap-1 px-2 py-1 bg-k-btn text-k-onbtn text-[10.5px] font-bold uppercase tracking-[0.06em] shadow-[-2px_2px_0_0_rgb(var(--k-btn)/0.5)] hover:brightness-110 transition"
+                    >
+                      <span className="shrink-0">Continue</span> <ArrowRight className="w-3 h-3 shrink-0" strokeWidth={2.4} aria-hidden /> <span className="truncate">{stepLabel}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* Infinite-scroll sentinel — reveals the next page as it nears the
+      {/* Infinite-scroll sentinel: reveals the next page as it nears the
           viewport; the button is a no-JS / observer-miss fallback. */}
       {hasMore && (
         <div ref={sentinelRef} className="flex justify-center py-6">
-          <button
-            onClick={() => setVisibleCount((c) => c + PAGE)}
-            className="text-xs font-medium text-muted hover:text-fg px-4 py-2 rounded-lg border border-border hover:border-border-strong transition"
-          >
-            Load more ({items.length - visibleCount} left)
+          <button onClick={() => setVisibleCount((c) => c + PAGE)} className="k-btn-ghost h-9 px-4 text-[12.5px]">
+            Show more ({fmtNumber(searched.length - visibleCount)} left)
           </button>
         </div>
       )}
@@ -548,29 +602,90 @@ function Chip({
   onClick,
   label,
   count,
-  dot,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   count: number;
-  dot?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={[
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] font-medium transition-colors",
+        "inline-flex items-center gap-2 h-8 px-3 text-[11.5px] font-bold uppercase tracking-[0.05em] transition-colors",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-k-btn",
         active
-          ? "border-accent bg-accent/8 text-fg"
-          : "border-border bg-bg-subtle text-muted hover:bg-bg-muted",
+          ? "bg-k-btn text-k-onbtn"
+          : "bg-k-inset text-fg/70 ring-1 ring-k-border hover:text-fg hover:ring-k-btn",
       ].join(" ")}
     >
-      {dot && <span className={`w-2 h-2 rounded-full ${dot}`} />}
       <span>{label}</span>
-      <span className="text-3xs font-mono text-muted tabular-nums">{count}</span>
+      <span className={["tabular-nums", active ? "opacity-80" : "text-fg/45"].join(" ")}>{count}</span>
     </button>
+  );
+}
+
+/** One of the four summary tiles. With onClick it is also the status filter. */
+function SummaryTile({
+  label,
+  value,
+  hint,
+  dot,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  dot?: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
+      <span className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.06em] text-fg/70">
+          {dot && <span className={`w-2 h-2 ${dot}`} aria-hidden />}
+          {label}
+        </span>
+        {active && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-k-accent">Showing</span>}
+      </span>
+      <span className="k-num block text-[36px] leading-none text-k-accent">{fmtNumber(value)}</span>
+      <span className="block text-[12.5px] text-fg/55 leading-snug">{hint}</span>
+    </>
+  );
+  const cls = [
+    "k-panel p-4 md:p-5 flex flex-col gap-3 text-left w-full",
+    active ? "!border-2 !border-k-btn" : "",
+  ].join(" ");
+  return onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cls + " k-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-k-btn"}
+    >
+      {body}
+    </button>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}
+
+function EmptyLibrary({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
+  return (
+    <div className="k-panel px-6 py-12 flex flex-col items-center text-center gap-3">
+      <span className="k-well w-12 h-12">
+        <FileVideo className="w-5 h-5" strokeWidth={1.5} aria-hidden />
+      </span>
+      <div className="space-y-1 max-w-md">
+        <p className="k-title before:content-none text-[15px]">{title}</p>
+        <p className="text-[13.5px] text-fg/60">{body}</p>
+      </div>
+      {action}
+    </div>
   );
 }
 
@@ -655,7 +770,7 @@ function LibraryTile({
       onMouseLeave={showVideo ? stopPreview : undefined}
       onFocus={showVideo ? playPreview : undefined}
       onBlur={showVideo ? stopPreview : undefined}
-      className="card card-hover text-left p-0 overflow-hidden flex flex-col group w-full"
+      className="card card-hover text-left p-0 overflow-hidden flex flex-col group w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-k-btn"
       title={item.topic ?? undefined}
     >
       <div className="aspect-[3/4] bg-bg-muted relative overflow-hidden">
@@ -678,14 +793,14 @@ function LibraryTile({
             // "none", not "metadata": hover-play (below) fetches on demand, so
             // metadata for every off-screen tile is pure waste.
             preload="none"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             onError={() => setVideoError(true)}
           />
         ) : showStill ? (
           <img
             src={stillSrc!}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
             decoding="async"
             onError={() => {
@@ -695,8 +810,8 @@ function LibraryTile({
           />
         ) : showPending ? (
           <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 px-3 text-center">
-            <span className="text-lg opacity-60 animate-pulse">⏳</span>
-            <span className="text-[10.5px] text-muted">
+            <Loader2 className="w-5 h-5 text-k-accent animate-spin" strokeWidth={1.8} aria-hidden />
+            <span className="text-[12px] text-fg/65">
               {tilePendingLabel(item.composition_status, item.type)}
             </span>
           </div>
@@ -713,52 +828,54 @@ function LibraryTile({
           <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-3 text-center">
             {item.status === "failed" ? (
               <>
-                <span className="text-base opacity-50">⚠</span>
-                <span className="text-[10.5px] text-danger">failed</span>
+                <AlertTriangle className="w-5 h-5 text-k-danger" strokeWidth={1.8} aria-hidden />
+                <span className="text-[12px] font-semibold text-k-danger">Didn't work</span>
               </>
             ) : imgError || videoError ? (
               <>
-                <span className="text-base opacity-50">⚠</span>
-                <span className="text-[10.5px] text-muted">Preview unavailable</span>
+                <AlertTriangle className="w-5 h-5 text-fg/45" strokeWidth={1.8} aria-hidden />
+                <span className="text-[12px] text-fg/60">Preview unavailable</span>
               </>
             ) : (
               <>
-                <span className="text-base opacity-40">▤</span>
-                <span className="text-[10.5px] text-muted">
+                <FileVideo className="w-5 h-5 text-fg/45" strokeWidth={1.8} aria-hidden />
+                <span className="text-[12px] text-fg/60">
                   {isEditorType ? "Empty timeline" : "Nothing to preview"}
                 </span>
               </>
             )}
           </div>
         )}
-        <span
-          className={`absolute top-2 left-2 font-mono text-[9.5px] px-1.5 py-0.5 rounded ${meta.pill}`}
-        >
+        <span className="absolute top-2 left-2 max-w-[calc(100%-1rem)] truncate px-2 py-1 bg-black/70 text-white text-[10.5px] font-bold uppercase tracking-[0.06em]">
           {meta.label}
         </span>
         {/* Badge what we're showing when it isn't the finished deliverable. */}
         {!finalVideo && item.preview_kind === "scene" && (
-          <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded bg-warning/85 text-white">
-            scene
+          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-k-purple text-white text-[10px] font-bold uppercase tracking-[0.06em]">
+            Scene
           </span>
         )}
         {!finalVideo && showStill && isTH && (
-          <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/55 text-white/90">
-            still
+          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 text-white text-[10px] font-bold uppercase tracking-[0.06em]">
+            Still
           </span>
         )}
         {showVideo && (
-          <span className="absolute bottom-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/55 text-white/90 opacity-0 group-hover:opacity-100 transition-opacity">
-            hover to play
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-1.5 py-0.5 bg-black/70 text-white text-[10px] font-bold uppercase tracking-[0.06em] group-hover:opacity-0 transition-opacity">
+            <Play className="w-3 h-3" strokeWidth={2.2} fill="currentColor" aria-hidden /> Video
           </span>
         )}
       </div>
-      <div className="p-2.5 space-y-1 flex-1 flex flex-col">
-        <p className="text-xs text-fg/85 line-clamp-2">
-          {item.topic || "(untitled)"}
+      <div className="p-3 flex-1 flex flex-col gap-2">
+        <p className="text-[13.5px] font-medium leading-snug text-fg line-clamp-2">
+          {item.topic || "Untitled"}
         </p>
-        <p className="mt-auto text-[10.5px] font-mono text-muted">
-          {fmtRel(item.created_at)}
+        <p className="mt-auto flex items-center justify-between gap-2 text-[12px] text-fg/55">
+          <span className="inline-flex items-center gap-1.5 min-w-0">
+            <span className={`w-2 h-2 shrink-0 ${LIFECYCLE_META[lifecycleOf(item)].dot}`} aria-hidden />
+            <span className="truncate">{LIFECYCLE_META[lifecycleOf(item)].label}</span>
+          </span>
+          <span className="shrink-0">{fmtRel(item.created_at)}</span>
         </p>
       </div>
     </button>
@@ -826,8 +943,8 @@ function LibraryDetailModal({
         position: "fixed",
         inset: 0,
         zIndex: 110,
-        background: "rgba(0,0,0,0.78)",
-        backdropFilter: "blur(2px)",
+        background: "rgba(0,0,0,0.72)",
+        backdropFilter: "blur(6px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -842,22 +959,22 @@ function LibraryDetailModal({
         tabIndex={-1}
         onKeyDown={trapTab}
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-bg rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col"
+        className="relative bg-bg-subtle border border-border overflow-hidden flex flex-col shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] animate-scaleIn"
         style={{ width: "min(560px, 100%)", maxHeight: "min(900px, 94vh)" }}
       >
-        <header className="shrink-0 px-4 py-3 border-b border-border flex items-center gap-2.5 bg-bg">
-          <span className={`font-mono text-3xs px-1.5 py-0.5 rounded ${meta.pill}`}>
+        <header className="shrink-0 px-4 py-3 border-b border-border flex items-center gap-2.5">
+          <span className="shrink-0 px-2 py-1 bg-k-inset ring-1 ring-k-border text-[10.5px] font-bold uppercase tracking-[0.06em] text-fg/75">
             {meta.label}
           </span>
-          <h2 className="text-sm font-semibold text-fg flex-1 truncate">
-            {item.topic || "(untitled)"}
+          <h2 className="text-[15px] font-semibold text-fg flex-1 truncate">
+            {item.topic || "Untitled"}
           </h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 rounded-full bg-bg-muted hover:bg-border text-fg flex items-center justify-center text-base leading-none transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-fg/60 hover:text-fg hover:bg-k-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-k-btn"
           >
-            ×
+            <X className="w-4 h-4" strokeWidth={2} aria-hidden />
           </button>
         </header>
 
@@ -894,23 +1011,23 @@ function LibraryDetailModal({
           </div>
 
           <dl className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
-            <Meta label="Status" value={item.status} />
+            <Meta label="Status" value={STATUS_WORDS[item.status] ?? item.status} />
             <Meta label="Created" value={fmtRel(item.created_at)} />
             {item.image_model && <Meta label="Engine" value={item.image_model} />}
             {cost && <Meta label="Cost" value={cost} />}
           </dl>
         </div>
 
-        <footer className="shrink-0 px-4 py-3 border-t border-border bg-bg-muted/50 flex items-center gap-3">
-          <p className="text-2xs font-mono text-muted flex-1">#{item.id}</p>
-          <button onClick={onClose} className="btn btn-ghost text-xs">
+        <footer className="shrink-0 px-4 py-3 border-t border-border bg-bg-muted/60 flex flex-wrap items-center gap-2.5">
+          <p className="text-[11.5px] text-fg/40 flex-1 tabular-nums">#{item.id}</p>
+          <button onClick={onClose} className="btn btn-ghost btn-sm">
             Close
           </button>
           {downloadHref && (
             <a
               href={downloadHref}
               download
-              className="btn btn-ghost text-xs"
+              className="btn btn-ghost btn-sm"
             >
               {item.has_video ? "Download video" : "Download image"}
             </a>
@@ -930,7 +1047,7 @@ function LibraryDetailModal({
               }}
               disabled={removingLogo}
               title="Re-render this poster without the 42 logo (kept as a new version)"
-              className="btn btn-ghost text-xs disabled:opacity-50"
+              className="btn btn-ghost btn-sm disabled:opacity-50"
             >
               {removingLogo ? "Removing logo…" : "Remove logo"}
             </button>
@@ -959,7 +1076,7 @@ function LibraryDetailModal({
                 }
               }}
               disabled={deleting}
-              className="btn btn-ghost text-xs text-danger hover:bg-danger/10 hover:border-danger/30 disabled:opacity-50"
+              className="btn btn-ghost btn-sm text-k-danger hover:!border-k-danger disabled:opacity-50"
             >
               {deleting ? "Deleting…" : "Delete"}
             </button>
@@ -978,13 +1095,13 @@ function LibraryDetailModal({
                 }
               }}
               disabled={exporting}
-              className="btn btn-ghost text-xs disabled:opacity-50"
+              className="btn btn-ghost btn-sm disabled:opacity-50"
             >
               {exporting ? "Exporting…" : "Export to video editor"}
             </button>
           )}
           {onContinue && canResume && (
-            <button onClick={onContinue} className="btn btn-primary text-xs">
+            <button onClick={onContinue} className="btn btn-primary btn-sm">
               Continue editing
             </button>
           )}

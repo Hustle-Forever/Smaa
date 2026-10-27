@@ -1233,3 +1233,21 @@ def test_every_advertised_op_field_is_declared_in_the_schema():
                   "points", "property", "asset_id", "frame_asset_id",
                   "source_kind", "source_id", "speed", "factor"):
         assert field in props, field
+
+
+def test_gemini_probe_asks_for_a_thinking_budget_pro_accepts(monkeypatch):
+    """Gemini 2.5 Pro (the default agent model) answers thinking_budget=0 with a
+    400, which made the probe report a working brain as "AI is offline"."""
+    from app.services import vertex_client
+
+    seen: dict = {}
+
+    async def _fake_text(prompt, **kwargs):
+        seen.update(kwargs)
+        return "ok"
+
+    monkeypatch.setattr(vertex_client, "gemini_text", _fake_text)
+    ok, why = _run(g._probe_gemini("gemini-2.5-pro"))
+    assert ok and why == "reachable"
+    assert seen["thinking_budget"] >= 128
+    assert seen["max_tokens"] > seen["thinking_budget"]

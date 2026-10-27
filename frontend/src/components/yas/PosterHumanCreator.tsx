@@ -70,6 +70,19 @@ function UploadIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
+/** A person with an AI sparkle: a character the AI made (Assets ->
+ *  img_human_character), as opposed to a photo you upload. */
+function AiCharacterIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
+      strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="9.5" cy="9.5" r="3.5"/>
+      <path d="M3 21c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/>
+      <path d="M18.5 1.5c.35 2.6 1.4 3.65 4 4-2.6.35-3.65 1.4-4 4-.35-2.6-1.4-3.65-4-4 2.6-.35 3.65-1.4 4-4z" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
 function GridFolderIcon({ className = "w-5 h-5" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
@@ -245,7 +258,7 @@ function VariantCard({
 
 export function PosterHumanCreator({ onBack, onContinue, initialRunId = null, onBatch, initialRunIds = null, initialBrief = null }: Props) {
   const [mode, setMode] = useState<YasMode>("style_inspired");
-  // Image engine is Nano Banana Pro (gemini-3-pro-image-preview) — the OpenAI
+  // Image engine is Nano Banana Pro (gemini-3-pro-image) — the OpenAI
   // option was removed here; Poster + Human always renders with Gemini.
   const imageModel: YasImageModel = "gemini_pro";
   const [topic, setTopic] = useState("");
@@ -540,7 +553,7 @@ export function PosterHumanCreator({ onBack, onContinue, initialRunId = null, on
         // FRESH template-fill — the student face is an uploaded photo or a
         // picked Human Character asset. Renders a 2x2 batch (no concept stage).
         if (!templateAsset || (!studentUpload && !studentAsset)) {
-          throw new Error("Pick a template and a student photo (upload or Human Character) first");
+          throw new Error("Pick a template and a student photo (upload one or choose an AI-generated character) first");
         }
         resp = await api.yasProducer.posterHuman.templateFill({
           topic: topic.trim(),
@@ -882,8 +895,9 @@ export function PosterHumanCreator({ onBack, onContinue, initialRunId = null, on
                       className="w-full h-full object-cover"
                     />
                     {studentAsset && (
-                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-medium">
-                        Human Character
+                      <span className="absolute bottom-1 left-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-medium">
+                        <AiCharacterIcon className="w-2.5 h-2.5" />
+                        AI-generated character
                       </span>
                     )}
                     <button
@@ -907,8 +921,8 @@ export function PosterHumanCreator({ onBack, onContinue, initialRunId = null, on
                       onClick={() => setPickerTarget("student")}
                       className="w-full rounded-lg border-2 border-dashed border-border bg-bg-muted/30 hover:bg-bg-muted/60 hover:border-accent flex flex-col items-center justify-center text-muted transition-colors gap-0.5"
                     >
-                      <GridFolderIcon className="w-5 h-5" />
-                      <span className="text-[10.5px] font-medium">Human Character</span>
+                      <AiCharacterIcon className="w-5 h-5" />
+                      <span className="text-[10.5px] font-medium">AI-generated character</span>
                     </button>
                   </div>
                 )}

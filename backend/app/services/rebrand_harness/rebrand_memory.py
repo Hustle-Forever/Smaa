@@ -635,7 +635,10 @@ async def rows_for(run: dict, seq: int, *, brand: Optional[dict] = None) -> list
         arm = ((exp or {}).get("arms") or {}).get("omni") or {}
         end = s.get("end") or {}
         frames = int(s.get("frames") or 0)
-        trim = {"auto": end.get("auto"), "end": frames, "user": end.get("user") is not None}
+        # `frames` is what plays; with a start trim (Rebrand's left grip) the
+        # scene's end is that many frames after its start, not from frame 0.
+        end_at = int(s.get("start") or 0) + frames
+        trim = {"auto": end.get("auto"), "end": end_at, "user": end.get("user") is not None}
         t = targets.get(target)
         # scene_base hashes (and, on a cold cache, decodes) the clip: in a
         # thread, so the snapshot's wait_for can stop waiting on it.
@@ -657,7 +660,7 @@ async def rows_for(run: dict, seq: int, *, brand: Optional[dict] = None) -> list
             "engine_v": ((arm.get("house") or {}).get("engine_v")) if exp else None,
             "recipe_hash": _recipe_hash(exp) if exp else None,
             "src_fps": end.get("src_fps"), "src_frames": end.get("src_frames"), "auto_end": end.get("auto"),
-            "end_frame": frames, "user_end": end.get("user") is not None,
+            "end_frame": end_at, "user_end": end.get("user") is not None,
             "duration_sec": round(frames / 30.0, 3) if frames else None,
             "topic": topic, "line": line,
             "transcript": _clip((words or {}).get("transcript")

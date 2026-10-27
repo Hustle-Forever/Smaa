@@ -115,7 +115,7 @@ GEMINI_PRO_LOCATION = config.vertex_image_pro_location
 # tails. 90s was producing silent timeouts on intro+outro. 240s gives us
 # headroom on the slow tail without letting genuinely-stuck calls run forever.
 #
-# gemini-3-pro-image-preview (Nano Banana) is faster than gpt-image-1 for
+# gemini-3-pro-image (Nano Banana) is faster than gpt-image-1 for
 # text-to-image (~30-60s) but with source_images attached it routinely
 # crosses 180s and sometimes spikes to ~250s. 300s gives each attempt enough
 # headroom while still bounding genuinely-stuck calls.
@@ -165,7 +165,7 @@ async def _run_veo_submits_bounded(
 
 # Max number of image-generation calls in flight at once. The talking-head
 # preview fires up to 5 image gens per run (main + intro + outro + extra scene
-# keyframes); the premium gemini-3-pro-image-preview model has a tight
+# keyframes); the premium gemini-3-pro-image model has a tight
 # per-minute quota that a 5-way burst (or several runs back-to-back) trips with
 # a 429 RESOURCE_EXHAUSTED. Bounding concurrency spaces the calls out so the
 # built-in 4x retry in `gemini_image` can succeed. Timing only — no effect on

@@ -356,6 +356,78 @@ export function viralOf(post: {
   };
 }
 
+// ---------------------------------------------------------------------------
+// UAE score
+// ---------------------------------------------------------------------------
+
+// Places, people and days that put a story inside the UAE (English + Arabic).
+const UAE_RE =
+  /(u\.?a\.?e|emirat(?:es|i|is)|abu\s?dhabi|dubai|sharjah|ajman|fujairah|ras\s?al[\s-]?khaimah|umm\s?al[\s-]?quwain|al\s?ain|mbzuai|khalifa\s+university|zayed)|الإمارات|الامارات|إماراتي|اماراتي|أبوظبي|ابوظبي|أبو ظبي|دبي|الشارقة|عجمان|الفجيرة|رأس الخيمة|العين/i;
+
+/**
+ * How much this lands with a UAE audience, 0-100.
+ *
+ * Happening inside the UAE (a UAE place, Emirati people or day named in it, or
+ * posted by a UAE account) is 100. A story from outside it keeps the scorer's
+ * own number; a news story the scorer never rated counts as international, 90.
+ */
+export function uaeScoreOf(post: {
+  source?: string | null;
+  topic?: string | null;
+  caption?: string | null;
+  tags?: unknown;
+  region?: string | null;
+  competitor_region?: string | null;
+  uae_relevance?: number | null;
+  metadata?: Record<string, unknown> | null;
+}): { score: number | null; reason: string } {
+  const meta = post.metadata ?? {};
+  const text = [
+    post.topic,
+    post.caption,
+    typeof meta.original_headline === "string" ? meta.original_headline : "",
+    typeof meta.why_it_matters === "string" ? meta.why_it_matters : "",
+    typeof meta.company === "string" ? meta.company : "",
+    Array.isArray(post.tags) ? post.tags.join(" ") : "",
+  ].join(" ");
+  const uaeRegion = post.region === "uae" || post.competitor_region === "uae";
+  if (UAE_RE.test(text) || uaeRegion) {
+    return { score: 100, reason: "Happening inside the UAE." };
+  }
+  if (post.uae_relevance != null && Number.isFinite(post.uae_relevance)) {
+    return { score: Math.round(post.uae_relevance), reason: "Outside the UAE. The AI's number for how well it lands here." };
+  }
+  if (post.source === "news") return { score: 90, reason: "International story, still relevant to a UAE audience." };
+  return { score: null, reason: "Not scored yet." };
+}
+
+/**
+ * Viral potential for a COMPETITOR post, from what performed in the past.
+ *
+ * `peers` is every competitor post we hold a measured result for (likes and
+ * comments against that account's usual post). The score is where this post
+ * lands among them: 90 means it did better than 90% of the competitor posts we
+ * have tracked. Measured, not guessed, and it sharpens by itself as every scan
+ * adds more results to compare against. Null below 5 results.
+ */
+export function pastViralOf(
+  outperf: number | null | undefined,
+  peers: readonly number[],
+): ViralVerdict | null {
+  if (outperf == null || !Number.isFinite(outperf) || peers.length < 5) return null;
+  let below = 0;
+  let same = 0;
+  for (const v of peers) {
+    if (v < outperf) below += 1;
+    else if (v === outperf) same += 1;
+  }
+  const score = Math.max(0, Math.min(100, Math.round((100 * (below + same / 2)) / peers.length)));
+  return {
+    score,
+    reason: `Did better than ${score}% of the ${peers.length} competitor posts we have tracked, measured against each account's usual post.`,
+  };
+}
+
 /**
  * The plain word for a score, and the colour band that goes with it. Every
  * class string is a complete literal, because Tailwind's scanner only sees

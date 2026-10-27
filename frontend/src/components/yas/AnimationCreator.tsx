@@ -368,6 +368,11 @@ export function AnimationCreator({
     "yas.animation.batchStack",
     [],
   );
+  // True while a Library resume is still loading. The batch restored above is
+  // an EARLIER session's, so it isn't reported until the resume lands — the
+  // report mirrors into the URL, and App's later hashchange would re-route the
+  // resume onto those old ids (same race as PosterCreator).
+  const [resuming, setResuming] = useState(initialRunId != null);
   const [phase, setPhase] = useState<"idle" | "framing" | "exploring">("idle");
   const [animatingId, setAnimatingId] = useState<number | null>(null);
   const [removingLogoId, setRemovingLogoId] = useState<number | null>(null);
@@ -459,7 +464,10 @@ export function AnimationCreator({
   // A shared/refreshed URL may carry a WHOLE batch (initialRunIds, >1) — restore
   // the full 2×2 grid by fetching each id in parallel and preserving order.
   useEffect(() => {
-    if (initialRunId == null) return;
+    if (initialRunId == null) {
+      setResuming(false);
+      return;
+    }
     // The batch to restore: prefer the multi-id superset when it has >1 member;
     // otherwise fall back to the single resumed id (unchanged behavior).
     const ids =
@@ -488,7 +496,8 @@ export function AnimationCreator({
           if (head.duration_sec) setDuration(head.duration_sec as YasAnimateDuration);
           if (head.with_audio != null) setWithAudio(head.with_audio);
         })
-        .catch(() => {/* non-fatal */});
+        .catch(() => {/* non-fatal */})
+        .finally(() => { if (!cancelled) setResuming(false); });
       return () => { cancelled = true; };
     }
     api.yasProducer.animation
@@ -503,7 +512,8 @@ export function AnimationCreator({
         if (g.duration_sec) setDuration(g.duration_sec as YasAnimateDuration);
         if (g.with_audio != null) setWithAudio(g.with_audio);
       })
-      .catch(() => {/* non-fatal */});
+      .catch(() => {/* non-fatal */})
+      .finally(() => { if (!cancelled) setResuming(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRunId]);
@@ -512,12 +522,12 @@ export function AnimationCreator({
   // can encode a shareable full-grid resume in the URL hash. Keyed on batchStack
   // (our own state), guarded so an empty stack never emits.
   useEffect(() => {
-    if (!batchStack.length) return;
+    if (resuming || !batchStack.length) return;
     const topBatchIds = batchStack[batchStack.length - 1];
     if (!topBatchIds.length) return;
     onBatch?.(topBatchIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchStack]);
+  }, [batchStack, resuming]);
 
   // The on-screen 2×2 grid = the last batch's ids resolved against `items`
   // (filtering any that aged out of the 24h window on a cold device).

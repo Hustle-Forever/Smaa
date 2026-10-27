@@ -52,31 +52,21 @@ interface Props {
 
 export function Sidebar({ tab, onTab }: Props) {
   return (
-    <aside className="hidden lg:flex w-[240px] shrink-0 flex-col border-r border-border bg-bg-subtle fixed inset-y-0 left-0 z-40">
-      {/* Brand mark — "42 Studio" lockup + one-line product subtitle. */}
+    // 42 charcoal rail in both themes, after the 42abudhabi.ae header: the
+    // white 42 mark, a thin cyan rule, white nav text, cyan for "you are here".
+    <aside className="hidden lg:flex w-[256px] shrink-0 flex-col fixed inset-y-0 left-0 z-40 bg-k-rail text-white border-r border-white/[0.06]">
       <button
         onClick={() => onTab("dashboard")}
-        className="flex items-center gap-2.5 px-5 py-5 border-b border-border text-left group"
+        className="mx-4 mt-5 mb-3 pt-3 border-t-2 border-k-cyan text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-k-cyan/70 rounded-sm"
         aria-label="Go to dashboard"
       >
-        <span
-          className={[
-            "inline-flex w-7 h-7 shrink-0 items-center justify-center rounded",
-            "bg-fg p-1.5",
-            "transition-shadow duration-200 group-hover:shadow-glow",
-          ].join(" ")}
-        >
+        <span className="flex items-end gap-3 px-1">
           {/* The real 42 mark, cropped out of the school's own white lockup in
-              backend/data/branding. What stood here was the two characters "4"
-              and "2" set in the UI font, which is not the logo and never was. */}
-          <img src="/42-logo.png" alt="" className="h-full w-full object-contain" />
-        </span>
-        <span className="min-w-0 leading-tight">
-          <span className="block text-[13px] font-semibold tracking-tight text-fg group-hover:text-accent transition-colors">
-            42 Studio
-          </span>
-          <span className="block truncate text-[11.5px] font-semibold tracking-wide text-fg/70 mt-0.5">
-            Creative Command Center
+              backend/data/branding. */}
+          <img src="/42-logo.png" alt="42" className="h-9 w-auto object-contain" />
+          <span className="pb-0.5 leading-none">
+            <span className="block k-display text-[18px] tracking-[0.02em] text-white">Studio</span>
+            <span className="block mt-1 text-[11px] font-medium tracking-[0.06em] uppercase text-white/55">Abu Dhabi</span>
           </span>
         </span>
       </button>
@@ -100,7 +90,7 @@ export function Sidebar({ tab, onTab }: Props) {
 export function NavList({
   tab,
   onTab,
-  className = "flex-1 px-3 py-5 space-y-1 overflow-y-auto",
+  className = "flex-1 px-3 py-3 space-y-0.5 overflow-y-auto",
 }: {
   tab: Tab;
   onTab: (t: Tab) => void;
@@ -117,10 +107,15 @@ export function NavList({
             aria-current={active ? "page" : undefined}
             className={["nav-item", active ? "active" : ""].join(" ")}
           >
-            <Icon className="nav-icon" strokeWidth={1.8} />
-            <span>{label}</span>
+            <Icon className="nav-icon" strokeWidth={1.8} aria-hidden />
+            <span className="truncate whitespace-nowrap">{label}</span>
             {badge && (
-              <span className="pill ml-auto bg-accent/10 text-accent border border-accent/20">
+              <span
+                className={[
+                  "ml-auto shrink-0 px-1 py-[3px] text-[9px] font-bold leading-none uppercase tracking-[0.06em]",
+                  active ? "text-k-cyan ring-1 ring-k-cyan/50" : "text-white/55 ring-1 ring-white/20",
+                ].join(" ")}
+              >
                 {badge}
               </span>
             )}

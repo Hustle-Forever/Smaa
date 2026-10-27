@@ -53,7 +53,7 @@ export const ROADMAP_TOOL_LABELS: Record<RoadmapTool, string> = {
   poster_human: "Poster + Human",
   talking_head_v2: "Human Element Video",
   video_editor: "Video Editor",
-  human_character: "Human Character",
+  human_character: "AI-generated character",
   general_video: "General AI Video",
   broll: "B-roll",
 };

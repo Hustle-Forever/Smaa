@@ -121,6 +121,14 @@
 // version made for another end says so on its picture ("Ends at 7.8 s ·
 // Remake": made again to this end, free).
 //
+// A main scene's start (the reel's `end.start`; moved with `onStart`): a
+// second grip, on the ruler's left, wherever the end grip is. Only the
+// reel's stitch skips it: the studio keeps working in the clip's own time
+// (no request carries it, the ruler and the lanes start at the clip's first
+// frame, hatched up to the start). The stage's player plays from it, goes
+// back to it at the end and never seeks before it; Original plays from it.
+// A move of the start is an undo step as the end's is.
+//
 // Kept past the automatic cut (a Veo tail flash), the frames after it can
 // be branded too: on Next, dragging the grip there asks the stage for the
 // whole clip (`onWantFull`; the hatched frames pulse while it is got ready,
@@ -234,7 +242,7 @@ import {
   type Pins,
 } from "../../../lib/rebrandRecipe";
 import { focusTime, phase, timing as timingOn, type Timing } from "../../../lib/rebrandTiming";
-import { cutOf, endNow, endSnaps, FPS, sceneSeconds, wantsWhole } from "../../../lib/rebrandEnd";
+import { cutOf, endNow, endSnaps, FPS, sceneSeconds, startSnaps, wantsWhole } from "../../../lib/rebrandEnd";
 import { endSeconds } from "../../../lib/rebrandStage";
 import type { ReelTarget } from "../../../lib/types";
 import type { Span } from "../../../lib/rebrandSpan";
@@ -269,7 +277,7 @@ import { PatternsTab } from "./PatternsTab";
 import { PromptView } from "./PromptView";
 import { RateVersion } from "./RateVersion";
 import { preloadRecolour } from "./RecolourCanvas";
-import { SceneTimeline, type EndGrip } from "./SceneTimeline";
+import { SceneTimeline, type EndGrip, type StartGrip } from "./SceneTimeline";
 import { changeLabel, clock, COPY } from "./studioCopy";
 import { StudioFilmstrip, type FilmCard } from "./StudioFilmstrip";
 import {
@@ -414,6 +422,7 @@ export function RebrandStudio({
   onPick,
   onEnd,
   onEndDrag,
+  onStart,
   onWantFull,
   onVersionsChanged,
   onDraftState,
@@ -450,6 +459,8 @@ export function RebrandStudio({
   onEnd?: (target: string, frame: number | null, nudge: boolean) => void;
   /** The grip is being dragged (where; null: let go). */
   onEndDrag?: (target: string, frame: number | null) => void;
+  /** A main scene's start grip moved (null: no trim; `nudge`: a key step). */
+  onStart?: (target: string, frame: number | null, nudge: boolean) => void;
   /** Next wants the frames past the automatic cut: the whole clip. */
   onWantFull?: (target: string) => void;
   /** This scene's versions changed (polled, or Generate just made one). */
@@ -483,15 +494,36 @@ export function RebrandStudio({
   } = useStudioScene(runId, target, view);
   const bookend = kind !== "scene";
   const draftKey = studioDraftKey(runId, target);
-  // The end on the undo stack: the stage holds it (and sends it).
+  // A main scene's start set by hand (frames from the clip's first; null:
+  // no trim). An intro or outro has none.
+  const startUser = kind === "scene" ? end?.start ?? null : null;
+  // The end (and a main scene's start) on the undo stack: the stage holds
+  // them (and sends them).
   const endUserRef = useRef(endUser);
   endUserRef.current = endUser;
+  const startUserRef = useRef(startUser);
+  startUserRef.current = startUser;
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
+  const onStartRef = useRef(onStart);
+  onStartRef.current = onStart;
   const hasOnEnd = !!onEnd;
+  const hasOnStart = !!onStart && kind === "scene";
   const endIo = useMemo<EndIo | null>(
-    () => (hasOnEnd ? { now: () => endUserRef.current, set: (f, nudge) => onEndRef.current?.(target, f, nudge) } : null),
-    [hasOnEnd, target],
+    () =>
+      hasOnEnd
+        ? {
+            now: () => endUserRef.current,
+            set: (f, nudge) => onEndRef.current?.(target, f, nudge),
+            ...(hasOnStart
+              ? {
+                  startNow: () => startUserRef.current,
+                  setStart: (f: number | null, nudge: boolean) => onStartRef.current?.(target, f, nudge),
+                }
+              : {}),
+          }
+        : null,
+    [hasOnEnd, hasOnStart, target],
   );
   const history = useDraftHistory(draftKey, `rebrand.studio.base.${runId}.${target}`, endIo);
   // Where the scene ends on the clip this studio shows (the server's
@@ -678,9 +710,14 @@ export function RebrandStudio({
   const pulseTimer = useRef<number | undefined>();
   const sentTargets = useRef(new Map<number, string[]>());
 
-  // On open, what goes in the reel: a version on its way, if there is one;
-  // else the scene's pick (the version that ships), else the original. An
-  // edit still takes the stage to Next, with the way back (toNext).
+  // On open: a version on its way, if there is one; else the scene's pick
+  // (the version that ships); else Next, the draft, with its patterns and
+  // icons on the stage and their handles ready. Opening on Original there
+  // showed empty lanes ("No patterns / No icons") and a stage whose clicks
+  // only played the clip, until an edit moved it to Next. What goes in the
+  // reel is not this: it changes only on a click (choose), and Original keeps
+  // its tick on the filmstrip. An edit still takes the stage to Next, with the
+  // way back (toNext).
   const selInit = useRef(false);
   const pickRef = useRef(pick);
   pickRef.current = pick;
@@ -697,7 +734,7 @@ export function RebrandStudio({
     const running = prepared.versions.find(isActive);
     const ships = pickRef.current != null ? prepared.versions.find((v) => v.id === pickRef.current) : undefined;
     const open = running ?? ships;
-    setSel(open ? { kind: "version", id: open.id } : { kind: "original" });
+    setSel(open ? { kind: "version", id: open.id } : { kind: "next" });
   }, [prepared]);
   // A version that is gone from the list takes the stage back to Next.
   useEffect(() => {
@@ -820,7 +857,8 @@ export function RebrandStudio({
       ? preview.shown?.preview.parent_has_omni_icons
       : undefined;
   const parentOmniIcons = !!baseVersion && (serverOmniIcons ?? hasOmniOwnIcons(baseVersion, knownVersions));
-  const player = useIconPlayer(cut != null ? cut / FPS : null);
+  // The stage's clock ends at the end set by hand, and starts at the start.
+  const player = useIconPlayer(cut != null ? cut / FPS : null, startUser != null ? startUser / FPS : null);
   const [selIcon, setSelIcon] = useState<string | null>(null);
   const [iconChoice, setIconChoice] = useState<IconChoice | null>(null);
   const [showSpots, setShowSpots] = useState(false);
@@ -1874,8 +1912,9 @@ export function RebrandStudio({
   }, [openRow]);
   const wordTimes = (timeline?.words ?? []).filter((w) => w.said && typeof w.s === "number").map((w) => w.s as number);
   // The scene's end: a grip in every view (once the server has it), an
-  // undo step when it moves (keyboard steps join).
-  const facts = endInfo ? { auto: endInfo.auto, extent: endInfo.extent } : null;
+  // undo step when it moves (keyboard steps join). It keeps a second after
+  // a main scene's start.
+  const facts = endInfo ? { auto: endInfo.auto, extent: endInfo.extent, start: startUser ?? 0 } : null;
   const grip: EndGrip | null =
     facts && end && onEnd
       ? {
@@ -1892,6 +1931,17 @@ export function RebrandStudio({
           },
         }
       : null;
+  // A main scene's start: a grip with the end's (the reel skips the clip
+  // before it), a second before the end at most.
+  const startGrip: StartGrip | null =
+    grip && facts && hasOnStart
+      ? {
+          frame: startUser ?? 0,
+          user: startUser,
+          snaps: startSnaps(grip.frame, { parts: partStarts, words: wordTimes, voicedStart: timeline?.voiced?.[0] ?? null }),
+          onStart: (f, nudge) => history.setStart(f, nudge ? { coalesce: "start" } : undefined),
+        }
+      : null;
   // The status line under the lanes (one line, always there): a drop put
   // back, else the picked icon off its word (with the way back), else the
   // picked icon moved off its word (or the moment it was added at) out of a
@@ -1902,6 +1952,18 @@ export function RebrandStudio({
     sel.kind === "next" && houseDraft && iconLane.kind === "ready" && selItem?.shifted && !selItem.off_word ? selItem : null;
   const lineButton =
     "shrink-0 font-medium underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40";
+  // Else, muted: a pattern or an icon that starts before a main scene's
+  // start (the reel cuts what is before it; the studio still shows it).
+  const beforeStart = ((): string | null => {
+    if (startUser == null || !draft || sel.kind !== "next" || !houseDraft) return null;
+    const at = startUser / FPS - 1e-6;
+    for (const el of draft.elements) {
+      if (el.kind !== "pattern") continue;
+      const tm = timingOf(el);
+      if (tm && tm.t_in < at) return entryOf(catalogue, slugOf(el))?.name ?? COPY.icons.colourChip.pattern;
+    }
+    return iconItems.find((it) => it.from < at)?.label ?? null;
+  })();
   const timelineStatus = laneNote ? (
     <span role="status" className="block truncate text-red-700">
       {laneNote}
@@ -1926,6 +1988,10 @@ export function RebrandStudio({
       >
         {COPY.icons.showAnyway(fmtSec(anywayOf(shifted.shifted).label))}
       </button>
+    </span>
+  ) : beforeStart ? (
+    <span role="status" className="block truncate text-muted">
+      {COPY.time.beforeStart(beforeStart)}
     </span>
   ) : null;
   // "Snap to words" (the icons' blocks), at the status line's end.
@@ -2175,6 +2241,7 @@ export function RebrandStudio({
         parts={partStarts}
         cuts={scene.cuts_sec ?? []}
         grip={grip}
+        startGrip={startGrip}
         status={timelineStatus}
         aside={snapToggle}
         focus={laneFocus}
@@ -2191,6 +2258,7 @@ export function RebrandStudio({
         parts={partStarts}
         cuts={scene.cuts_sec ?? []}
         grip={grip}
+        startGrip={startGrip}
       >
         {sel.kind === "next" ? undefined : readOnlyLanes}
       </SceneTimeline>
@@ -2725,6 +2793,7 @@ export function RebrandStudio({
             onReset={defaultRecipe && !isDefault && !bookend ? resetToDefault : undefined}
             compact={!!push}
             originalEnd={cut != null ? cut / FPS : null}
+            originalStart={startUser != null ? startUser / FPS : null}
             endChip={endChip}
           />
           <StudioRail

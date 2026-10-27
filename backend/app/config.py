@@ -413,6 +413,10 @@ class Config:
     # --- Scheduler ---
     auto_crawl_cron: str
     scheduler_timezone: str
+    # Trend Radar: where its one JSON file lives, and the Gulf-time hour the
+    # radar is built each morning (0-23; -1 turns the daily build off).
+    trend_radar_root: Path
+    trend_radar_hour: int
 
     # --- Producer Roadmap: scheduling, reminder email, IG publishing ---
     # Where the user opens 42 Studio (used in reminder-email links).
@@ -505,8 +509,11 @@ class Config:
             # to "imagen-3.0-generate-002" or similar if your project's Vertex
             # quota points at Imagen instead.
             vertex_image_model=os.getenv("VERTEX_IMAGE_MODEL", "gemini-2.5-flash-image"),
+            # Nano Banana Pro. GA since 2026-05-28 under this id; the old
+            # `gemini-3-pro-image-preview` id now 404s (and the 404 used to
+            # drop every image call to the standard tier). Global endpoint only.
             vertex_image_pro_model=os.getenv(
-                "VERTEX_IMAGE_PRO_MODEL", "gemini-3-pro-image-preview"),
+                "VERTEX_IMAGE_PRO_MODEL", "gemini-3-pro-image"),
             vertex_image_pro_location=os.getenv("VERTEX_IMAGE_PRO_LOCATION", "global"),
             vertex_fallback_locations=_list("VERTEX_FALLBACK_LOCATIONS", "us-east4,us-west1,europe-west4"),
             vertex_max_concurrency=_int("VERTEX_MAX_CONCURRENCY", 4),
@@ -683,6 +690,8 @@ class Config:
 
             auto_crawl_cron=os.getenv("AUTO_CRAWL_CRON", "").strip(),
             scheduler_timezone=os.getenv("SCHEDULER_TIMEZONE", "UTC").strip(),
+            trend_radar_root=_path("TREND_RADAR_ROOT", "data/trend_radar"),
+            trend_radar_hour=_int("TREND_RADAR_HOUR", 7),
 
             app_base_url=os.getenv("APP_BASE_URL", "http://127.0.0.1:4242").strip().rstrip("/"),
             public_media_base_url=os.getenv("PUBLIC_MEDIA_BASE_URL", "").strip().rstrip("/"),

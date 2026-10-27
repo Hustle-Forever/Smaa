@@ -37,9 +37,10 @@ import { Spinner } from "./Spinner";
  * work. Numbers here, phrasing derived, so they cannot drift apart again.
  */
 export const JOB_ETA = {
-  poster: [30, 60],
-  poster_human: [30, 60],
-  human_character: [30, 60],
+  // Four Nano Banana Pro pictures, one after another (~20-30 s each).
+  poster: [60, 120],
+  poster_human: [60, 120],
+  human_character: [60, 120],
   animation: [60, 120],
   still: [15, 30],
   video: [60, 180],

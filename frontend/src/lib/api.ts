@@ -27,6 +27,7 @@ import type {
   InstagramOwnSummary,
   ReelBlock,
   ReelChoicePatch,
+  ReelMusicLevel,
   TalkingHeadGenerateScriptRequest,
   TalkingHeadRetryRequest,
   TalkingHeadV2EditRequest,
@@ -747,6 +748,37 @@ const reports = {
 
 // ----- Health / Settings / Brand -----
 
+// ----- Trend Radar (/api/radar) -----
+//
+// The daily AI + coding top 10 for 42. `refresh` returns at once and the build
+// runs in the background: poll `get()` while `building` is true.
+export interface RadarCard {
+  title: string;
+  url: string;
+  source: string;
+  official: boolean;
+  category: string;
+  important: number;
+  good_for_42: number;
+  post_it: number;
+  score: number;
+  why: string;
+  idea: string;
+  when: string | null;
+}
+export interface Radar {
+  date: string | null;
+  built_at: string | null;
+  items: RadarCard[];
+  is_today: boolean;
+  building: boolean;
+  error: string | null;
+}
+const radar = {
+  get: () => http<Radar>("/api/radar"),
+  refresh: () => http<Radar>("/api/radar/refresh", { method: "POST", body: "{}" }),
+};
+
 export const api = {
   health: () => http<Health>("/api/health"),
 
@@ -1205,10 +1237,10 @@ export const api = {
           body: JSON.stringify(body),
         }),
       // "Explore" — 4 close variations of an existing poster (engine-selectable).
-      variants: (parentId: number, image_model?: YasImageModel) =>
+      variants: (parentId: number, image_model?: YasImageModel, progressive?: boolean) =>
         http<YasPosterBatchResponse>("/api/yas-producer/poster/variants", {
           method: "POST",
-          body: JSON.stringify({ parent_id: parentId, image_model }),
+          body: JSON.stringify({ parent_id: parentId, image_model, progressive }),
         }),
       // "Remove logo" — re-render this poster with the 42 logo removed, kept as a
       // NEW child record (the original is preserved). Returns the new poster row.
@@ -1602,6 +1634,21 @@ export const api = {
           `/api/yas-producer/talking-head-v2/${runId}/reel/${encodeURIComponent(target)}`,
           { method: "PUT", body: JSON.stringify(patch) },
         ),
+      // Background music under the finished reel (Final). Paid (Suno): only
+      // the music panel's "Make music" press calls it. The run back, with
+      // run.music generating; the server collects the track and lays it under.
+      music: (runId: number, brief: string) =>
+        http<TalkingHeadRun>(
+          `/api/yas-producer/talking-head-v2/${runId}/music`,
+          { method: "POST", body: JSON.stringify({ brief }) },
+        ),
+      // The music on (laid under the reel at `level`; free, seconds) or off
+      // (`remove`: the panel starts over). The reel itself never changes.
+      musicApply: (runId: number, body: { on: boolean; level?: ReelMusicLevel; remove?: boolean }) =>
+        http<TalkingHeadRun>(
+          `/api/yas-producer/talking-head-v2/${runId}/music/apply`,
+          { method: "POST", body: JSON.stringify(body) },
+        ),
       // Hard-delete a Talking Head run (run + all child cards/scenes + media +
       // composition) — Library "Delete". Saved assets + published IG preserved.
       delete: (runId: number) =>
@@ -1645,6 +1692,13 @@ export const api = {
       compositionFileUrl: (runId: number, v?: number | null, download?: boolean) => {
         const q = [v != null ? `v=${v}` : "", download ? "download=1" : ""].filter(Boolean).join("&");
         return `${BASE}/api/yas-producer/talking-head-v2/${runId}/composition/file${q ? `?${q}` : ""}`;
+      },
+      // The reel's music version (run.music.music_url names the same file):
+      // `v` = the reel, `m` = run.music.mix_id, so a new mix is a new URL.
+      musicFileUrl: (runId: number, v?: number | null, mixId?: string | null, download?: boolean) => {
+        const q = ["music=1", v != null ? `v=${v}` : "", mixId ? `m=${encodeURIComponent(mixId)}` : "", download ? "download=1" : ""]
+          .filter(Boolean).join("&");
+        return `${BASE}/api/yas-producer/talking-head-v2/${runId}/composition/file?${q}`;
       },
       // v2 editor — edit-in-place, per-clip exclusion, batch regen, restore.
       editRun: (runId: number, body: TalkingHeadV2EditRequest) =>
@@ -1971,6 +2025,7 @@ export const api = {
 
   // General trends — same pattern, declared above as `generalTrends`.
   generalTrends,
+  radar,
 
   // Social-listening report — declared above as `reports`.
   reports,

@@ -2,152 +2,438 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   42 Abu Dhabi design system
+   ===========================================================================
+   After 42abudhabi.ae: charcoal ground, white type, cyan #00E5FC, purple
+   #7100FE, coral #FF5E4E, Futura caps (Jost here), square corners, outlined
+   buttons with a stepped solid shadow, "> TITLE" headings, <WORD/> brackets.
+
+   Two themes on <html data-k="dark|light"> (lib/theme.ts):
+     42 Dark  = the website: charcoal everywhere.
+     42 Light = the website's white sections (e.g. /about): white ground,
+                charcoal type; purple carries accent text and buttons there,
+                because cyan on white is 1.4:1 and cannot be read.
+
+   Every colour is an RGB-channel variable, so Tailwind /opacity works and
+   one class is right in both themes. The legacy tokens (bg, fg, muted,
+   border, accent: tailwind.config.ts) read these too, which is what moves
+   every page, old or new, onto the 42 look at once. */
+
 @layer base {
-  :root {
-    color-scheme: light;
+  :root,
+  :root[data-k="dark"] {
+    color-scheme: dark;
+    --k-canvas: 49 49 49; /* #313131, the website ground */
+    --k-surface: 56 56 56; /* panels, one step up */
+    --k-inset: 66 66 66; /* inside panels */
+    --k-border: 78 78 78; /* #4E4E4E solid hairlines */
+    --k-border-strong: 104 104 104;
+    --k-line: 255 255 255; /* tints, at low alpha */
+    --k-text: 255 255 255;
+    --k-muted: 178 178 178; /* 7:1 on the ground */
+    --k-cyan: 0 229 252; /* #00E5FC */
+    --k-oncyan: 26 26 26;
+    --k-accent: 0 229 252; /* accent TEXT */
+    --k-accent-hover: 0 200 222;
+    --k-btn: 0 229 252; /* the outlined 42 button */
+    --k-onbtn: 26 26 26; /* text on a FILLED button */
+    --k-purple: 113 0 254; /* #7100FE */
+    --k-coral: 255 94 78; /* #FF5E4E */
+    --k-chart: 0 229 252;
+    --k-danger: 255 107 92;
+    --k-rail: 41 41 41;
+    --k-shadow: 0 0 0;
+    /* legacy accent channels (bg-accent, text-accent …) follow the theme */
+    --accent-rgb: 0 229 252;
+    --accent-hover-rgb: 0 200 222;
+    /* line art (map, circuit beads) */
+    --k-map: 0 229 252;
+    --k-map-alpha: 0.5;
+    --k-bead: 255 94 78;
   }
+  :root[data-k="light"] {
+    color-scheme: light;
+    --k-canvas: 245 245 245;
+    --k-surface: 255 255 255;
+    --k-inset: 241 241 241;
+    --k-border: 222 222 222;
+    --k-border-strong: 196 196 196;
+    --k-line: 49 49 49;
+    --k-text: 49 49 49;
+    --k-muted: 98 98 98; /* 6:1 on white */
+    --k-cyan: 0 229 252;
+    --k-oncyan: 26 26 26;
+    --k-accent: 113 0 254; /* purple text, 7.9:1 on white */
+    --k-accent-hover: 88 0 200;
+    --k-btn: 113 0 254;
+    --k-onbtn: 255 255 255;
+    --k-purple: 113 0 254;
+    --k-coral: 255 94 78;
+    --k-chart: 113 0 254;
+    --k-danger: 205 52 40;
+    --k-rail: 49 49 49;
+    --k-shadow: 49 49 49;
+    --accent-rgb: 113 0 254;
+    --accent-hover-rgb: 88 0 200;
+    --k-map: 113 0 254;
+    --k-map-alpha: 0.32;
+    --k-bead: 255 94 78;
+  }
+
   html,
   body {
-    background-color: #ffffff;
-    color: #0f1011;
+    background-color: rgb(var(--k-canvas));
+    color: rgb(var(--k-text));
   }
   body {
     min-height: 100vh;
-    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
   }
   ::selection {
-    background: rgba(6, 182, 162, 0.22);
-    color: #0f1011;
+    background: rgb(var(--k-cyan) / 0.35);
+    color: rgb(var(--k-text));
   }
 }
 
 @layer components {
-  /* Typography */
+  /* ---------- Type ---------- */
   .eyebrow {
-    @apply font-mono uppercase text-2xs tracking-wider2 text-muted font-medium;
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply uppercase text-[11px] font-bold tracking-[0.1em] text-muted;
+  }
+  .h1,
+  .k-display {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.005em;
+    line-height: 1.02;
   }
   .h1 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight text-fg;
+    @apply text-[30px] md:text-[40px] text-fg;
+  }
+  .h2,
+  .k-title {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
   }
   .h2 {
-    @apply text-xl font-semibold tracking-tight text-fg;
+    @apply text-[18px] text-fg;
+  }
+  .k-title {
+    font-size: 15px;
+    color: rgb(var(--k-text));
   }
   .lead {
     @apply text-base text-muted leading-relaxed;
   }
-
-  /* Surfaces */
-  .card {
-    @apply bg-bg-subtle border border-border rounded-xl shadow-soft;
+  .k-num {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
   }
-  .card-hover {
-    @apply transition-all duration-150
-           hover:border-border-strong hover:shadow-lift hover:-translate-y-px;
+  /* The <WORD/> code bracket, in the accent; brackets in the pixel face, like
+     the VG5000 brackets in "APPLY < NOW >" on the website. */
+  .k-code {
+    color: rgb(var(--k-accent));
+  }
+  .k-pixel {
+    font-family: "Pixelify Sans", "VG5000", ui-monospace, monospace;
+    font-weight: 500;
   }
 
-  /* Buttons — sans-serif, normal case, soft rounded */
+  /* ---------- Surfaces: square, flat, hairline (42 has no rounded cards) ---------- */
+  .card,
+  .k-panel,
+  .glass {
+    --k-btn-bg: var(--k-surface);
+    border-radius: 2px;
+    background-color: rgb(var(--k-surface));
+    border: 1px solid rgb(var(--k-border));
+  }
+  .card-hover,
+  .k-hover,
+  .glass-hover {
+    transition:
+      border-color 160ms ease,
+      box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Lift: the card moves up and to the right, leaving a thin stepped
+     shadow behind it, and drops straight back when pressed. */
+  .card-hover:hover,
+  .k-hover:hover,
+  .glass-hover:hover {
+    border-color: rgb(var(--k-btn));
+    transform: translate(3px, -3px);
+    box-shadow: -3px 3px 0 0 rgb(var(--k-btn) / 0.45);
+  }
+  .k-hover:active,
+  .glass-hover:active,
+  .card-hover:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+    transition-duration: 80ms;
+  }
+  .k-inset,
+  .glass-inset {
+    --k-btn-bg: var(--k-inset);
+    border-radius: 2px;
+    background-color: rgb(var(--k-inset));
+    border: 1px solid rgb(var(--k-border) / 0.7);
+  }
+  .k-well,
+  .icon-well {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 2px;
+    color: rgb(var(--k-text) / 0.9);
+    background-color: rgb(var(--k-inset));
+    border: 1px solid rgb(var(--k-border));
+  }
+  .illo-panel {
+    background-color: rgb(var(--k-inset));
+    border: 1px solid rgb(var(--k-border) / 0.7);
+  }
+  /* The purple feature block, after the news cards and footer on the website.
+     It re-points the theme variables inside it, so text, buttons and accents
+     in it are right on purple in BOTH themes: white text, cyan accents. */
+  .k-feature {
+    background-color: rgb(var(--k-purple));
+    color: #fff;
+    --k-text: 255 255 255;
+    --k-muted: 225 214 255;
+    --k-accent: 0 229 252;
+    --k-btn: 0 229 252;
+    --k-onbtn: 26 26 26;
+    --k-border: 150 80 255;
+    --k-surface: 128 40 255;
+    --k-inset: 128 40 255;
+    --k-line: 255 255 255;
+    --k-btn-bg: var(--k-purple);
+  }
+
+  /* ---------- Buttons ---------- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded
-           font-medium text-sm transition-all duration-150
-           active:scale-[0.98]
-           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40;
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-none
+           font-bold uppercase text-[13px] tracking-[0.04em] transition-all duration-150
+           disabled:opacity-45 disabled:cursor-not-allowed
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: rgb(var(--k-btn));
+    --tw-ring-offset-color: rgb(var(--k-canvas));
   }
-  .btn-primary {
-    @apply bg-fg text-white hover:opacity-90;
+  /* The 42 button: outlined, accent text, a solid stepped shadow down-left
+     ("APPLY < NOW >", "LEARN MORE", "READ < POST >"). It presses INTO the
+     stack on click, so the press is felt at once. */
+  .btn-primary,
+  .k-btn {
+    color: rgb(var(--k-btn));
+    /* Solid, the colour of whatever it sits on (--k-btn-bg), so the map
+       lines behind the page never show through a button. */
+    background-color: rgb(var(--k-btn-bg, var(--k-canvas)));
+    border: 2px solid rgb(var(--k-btn));
+    box-shadow:
+      -3px 3px 0 0 rgb(var(--k-btn)),
+      -6px 6px 0 0 rgb(var(--k-btn) / 0.55);
+    transition:
+      transform 110ms ease-out,
+      box-shadow 110ms ease-out,
+      background-color 150ms ease;
   }
+  .btn-primary:hover,
+  .k-btn:hover {
+    background-image: linear-gradient(rgb(var(--k-btn) / 0.1), rgb(var(--k-btn) / 0.1));
+  }
+  .btn-primary:active,
+  .k-btn:active {
+    transform: translate(-3px, 3px);
+    box-shadow: 0 0 0 0 rgb(var(--k-btn));
+  }
+  .btn-primary:disabled,
+  .k-btn:disabled {
+    transform: none;
+    box-shadow: none;
+  }
+  .k-btn {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center gap-2 h-10 px-4 whitespace-nowrap select-none
+           font-bold uppercase text-[13.5px] tracking-[0.04em]
+           disabled:opacity-45 disabled:cursor-not-allowed
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: rgb(var(--k-btn));
+    --tw-ring-offset-color: rgb(var(--k-canvas));
+  }
+  .k-btn-sm {
+    @apply h-9 px-3.5 text-[12.5px];
+  }
+  /* Filled variant for the single most important action on a screen. */
   .btn-accent {
-    @apply bg-accent text-white hover:bg-accent-hover;
+    color: rgb(var(--k-onbtn));
+    background-color: rgb(var(--k-btn));
+    border: 2px solid rgb(var(--k-btn));
   }
-  .btn-ghost {
-    @apply bg-transparent text-fg hover:bg-bg-muted border border-border;
+  .btn-accent:hover {
+    background-color: rgb(var(--k-accent-hover));
+    border-color: rgb(var(--k-accent-hover));
   }
-  /* Mid-weight action: more present than ghost, less loud than primary.
-     Referenced by NewsConfigPanel since it was written; the class was never
-     defined, so those three buttons rendered with no background and no border
-     at all. */
+  .btn-ghost,
+  .k-btn-ghost {
+    color: rgb(var(--k-text));
+    background-color: rgb(var(--k-btn-bg, var(--k-canvas)));
+    border: 1.5px solid rgb(var(--k-border-strong));
+  }
+  .btn-ghost:hover,
+  .k-btn-ghost:hover {
+    border-color: rgb(var(--k-btn));
+    color: rgb(var(--k-text));
+  }
+  .k-btn-ghost {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center gap-2 h-10 px-4 whitespace-nowrap
+           font-bold uppercase text-[13.5px] tracking-[0.04em] transition-colors duration-150
+           focus:outline-none focus-visible:ring-2;
+    --tw-ring-color: rgb(var(--k-btn));
+  }
   .btn-secondary {
-    @apply bg-bg-muted text-fg hover:bg-border border border-border;
+    color: rgb(var(--k-text));
+    background-color: rgb(var(--k-inset));
+    border: 1px solid rgb(var(--k-border));
+  }
+  .btn-secondary:hover {
+    border-color: rgb(var(--k-btn));
   }
   .btn-danger {
-    @apply bg-danger text-white hover:opacity-90;
+    @apply text-white hover:opacity-90;
+    background-color: rgb(var(--k-danger));
+    border: 2px solid rgb(var(--k-danger));
   }
-
-  /* Sizes. `.btn` bakes in the medium size, and every smaller button in the
-     tree got there by appending `text-xs` or `text-[11px]` to the class list --
-     which changed the type but not the padding, so "small" buttons were
-     medium-sized buttons with small text. These change both. */
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply px-3 py-1.5 text-[12px];
   }
   .btn-xs {
-    @apply px-2.5 py-1 text-2xs;
+    @apply px-2.5 py-1 text-[11px];
   }
 
-  /* Pills */
+  /* ---------- Pills ---------- */
   .pill {
-    @apply inline-block font-mono uppercase tracking-wider2 text-3xs font-bold px-2 py-1 rounded;
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply inline-block uppercase tracking-[0.08em] text-[10.5px] font-bold px-2 py-1 rounded-none;
   }
-  .pill-uploaded {
+  .pill-uploaded,
+  .pill-skipped {
     @apply bg-bg-muted text-muted border border-border;
   }
   .pill-running,
   .pill-processing {
-    @apply bg-warning/10 text-warning border border-warning/20;
+    @apply bg-warning/10 text-warning border border-warning/30;
   }
   .pill-started {
-    @apply bg-accent/10 text-accent border border-accent/20;
+    @apply bg-accent/10 text-accent border border-accent/40;
   }
   .pill-completed {
-    @apply bg-success/10 text-success border border-success/20;
+    @apply bg-success/10 text-success border border-success/30;
   }
   .pill-failed {
-    @apply bg-danger/10 text-danger border border-danger/20;
-  }
-  .pill-skipped {
-    @apply bg-bg-muted text-muted border border-border;
+    @apply bg-danger/10 text-danger border border-danger/30;
   }
 
-  /* Inputs */
+  /* ---------- Inputs ---------- */
   .input,
   .textarea {
-    @apply w-full bg-bg-subtle border border-border rounded-lg px-4 py-3
-           text-fg placeholder:text-muted/70
-           focus:outline-none focus:border-accent focus:shadow-glow
-           transition-shadow transition-colors duration-150;
+    @apply w-full bg-bg-subtle border border-border rounded-none px-4 py-3
+           text-fg placeholder:text-muted/80
+           focus:outline-none transition-colors duration-150;
+  }
+  .input:focus,
+  .textarea:focus {
+    border-color: rgb(var(--k-btn));
+    box-shadow: inset 0 0 0 1px rgb(var(--k-btn));
   }
   .textarea {
     @apply min-h-[120px] resize-y;
   }
   .focus-glow:focus-within {
-    @apply shadow-glow;
+    box-shadow: inset 0 0 0 1px rgb(var(--k-btn));
   }
 
-  /* Sidebar nav */
+  /* ---------- Sidebar nav (charcoal rail in both themes) ---------- */
   .nav-item {
-    @apply relative flex items-center gap-3 px-3 py-2 rounded
-           text-sm font-medium
-           text-muted hover:text-fg hover:bg-bg-muted transition-colors w-full text-left;
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply relative flex items-center gap-2.5 h-10 px-3 rounded-none
+           text-[12px] font-semibold uppercase tracking-[0.01em]
+           text-white/70 hover:text-white hover:bg-white/[0.05]
+           transition-colors duration-150 w-full text-left
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-k-cyan/70;
   }
   .nav-item.active {
-    @apply text-fg bg-bg-muted;
+    @apply text-white bg-white/[0.07];
   }
+  /* The website marks the current page with a thick cyan underline; on a
+     vertical rail that becomes a thick cyan bar. */
   .nav-item.active::before {
     content: "";
-    @apply absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-accent;
+    @apply absolute left-0 top-0 bottom-0 w-[4px] bg-k-cyan;
+  }
+  .nav-item.active .nav-icon {
+    @apply text-k-cyan;
   }
   .nav-icon {
-    @apply w-4 h-4 shrink-0;
+    @apply w-[18px] h-[18px] shrink-0;
   }
 
-  /* Progress bar */
+  /* ---------- Segmented switch ---------- */
+  .k-seg,
+  .segmented {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border-radius: 0;
+    background-color: rgb(var(--k-inset));
+    border: 1px solid rgb(var(--k-border));
+  }
+  .k-seg > button,
+  .segmented > button {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    @apply rounded-none px-3 h-7 text-[12px] font-bold uppercase tracking-[0.04em] transition-all duration-200
+           focus:outline-none focus-visible:ring-2;
+    color: rgb(var(--k-text) / 0.65);
+    --tw-ring-color: rgb(var(--k-btn));
+  }
+  .k-seg > button:hover,
+  .segmented > button:hover {
+    color: rgb(var(--k-text));
+  }
+  .k-seg > button[aria-pressed="true"],
+  .segmented > button[aria-pressed="true"] {
+    background-color: rgb(var(--k-btn));
+    color: rgb(var(--k-onbtn));
+  }
+
+  /* ---------- Progress bar ---------- */
   .bar {
-    @apply h-1 bg-border rounded-full overflow-hidden;
+    @apply h-1 bg-border rounded-none overflow-hidden;
   }
   .bar > div {
     @apply h-full bg-accent transition-all duration-500 ease-out;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Page grounds. The old "studio canvas" and the 42 canvas are now the same
+   plain theme ground: no grid, no gradient (the team asked for that).
+   --------------------------------------------------------------------------- */
+body.studio-canvas,
+body.k-canvas {
+  background-color: rgb(var(--k-canvas));
+  color: rgb(var(--k-text));
 }
 
 @layer utilities {
@@ -172,19 +458,19 @@
     width: 18px;
     height: 18px;
     border-radius: 9999px;
-    background: theme(colors.accent.DEFAULT);
+    background: rgb(var(--accent-rgb));
     cursor: pointer;
-    border: 3px solid white;
-    box-shadow: 0 0 0 1px theme(colors.accent.DEFAULT);
+    border: 3px solid rgb(var(--k-surface));
+    box-shadow: 0 0 0 1px rgb(var(--accent-rgb));
   }
   input[type="range"].slider::-moz-range-thumb {
     width: 18px;
     height: 18px;
     border-radius: 9999px;
-    background: theme(colors.accent.DEFAULT);
+    background: rgb(var(--accent-rgb));
     cursor: pointer;
-    border: 3px solid white;
-    box-shadow: 0 0 0 1px theme(colors.accent.DEFAULT);
+    border: 3px solid rgb(var(--k-surface));
+    box-shadow: 0 0 0 1px rgb(var(--accent-rgb));
   }
 
   /* Shimmer for connecting state.
@@ -209,9 +495,9 @@
   .shimmer-bar {
     background: linear-gradient(
       90deg,
-      rgba(6, 182, 162, 0) 0%,
-      rgba(6, 182, 162, 0.4) 50%,
-      rgba(6, 182, 162, 0) 100%
+      rgb(var(--accent-rgb) / 0) 0%,
+      rgb(var(--accent-rgb) / 0.4) 50%,
+      rgb(var(--accent-rgb) / 0) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
@@ -261,6 +547,27 @@
    Anything inside the report that is chrome rather than content (the viewer's
    own toolbar, a close button) carries `.no-print` and is removed outright. */
 @media print {
+  /* Paper is white: a page printed from 42 Dark uses the light palette. */
+  :root[data-k="dark"] {
+    color-scheme: light;
+    --k-canvas: 255 255 255;
+    --k-surface: 255 255 255;
+    --k-inset: 241 241 241;
+    --k-border: 222 222 222;
+    --k-border-strong: 196 196 196;
+    --k-line: 49 49 49;
+    --k-text: 49 49 49;
+    --k-muted: 98 98 98;
+    --k-accent: 113 0 254;
+    --k-accent-hover: 88 0 200;
+    --k-btn: 113 0 254;
+    --k-onbtn: 255 255 255;
+    --k-chart: 113 0 254;
+    --k-danger: 205 52 40;
+    --k-shadow: 49 49 49;
+    --accent-rgb: 113 0 254;
+    --accent-hover-rgb: 88 0 200;
+  }
   body * {
     visibility: hidden;
   }
@@ -325,4 +632,595 @@
   [data-print-page]:last-child {
     break-after: auto;
   }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Older screens: fixed light colours, re-pointed in 42 Dark
+   ---------------------------------------------------------------------------
+   Most of the app paints with theme tokens and needs nothing here. These are
+   the few places that hard-code a light surface (bg-white …) and would flash
+   white panels with white text in the dark theme. Low-alpha white (≤ 50%) is
+   left alone: those are tints over photos and video, right in both themes. */
+html[data-k="dark"] .bg-white { background-color: rgb(var(--k-surface)); }
+html[data-k="dark"] .bg-white\/60 { background-color: rgb(var(--k-surface) / 0.6); }
+html[data-k="dark"] .bg-white\/70 { background-color: rgb(var(--k-surface) / 0.7); }
+html[data-k="dark"] .bg-white\/75 { background-color: rgb(var(--k-surface) / 0.75); }
+html[data-k="dark"] .bg-white\/80 { background-color: rgb(var(--k-surface) / 0.8); }
+html[data-k="dark"] .bg-white\/85 { background-color: rgb(var(--k-surface) / 0.85); }
+html[data-k="dark"] .bg-white\/90 { background-color: rgb(var(--k-surface) / 0.9); }
+html[data-k="dark"] .bg-white\/95 { background-color: rgb(var(--k-surface) / 0.95); }
+html[data-k="dark"] .bg-stone-50,
+html[data-k="dark"] .bg-stone-100 { background-color: rgb(var(--k-inset)); }
+html[data-k="dark"] .text-black { color: rgb(var(--k-text)); }
+html[data-k="dark"] .border-white:not(.animate-spin) { border-color: rgb(var(--k-border)); }
+
+/* Older screens also write state in Tailwind's fixed palette: dark text
+   (amber-700 "making…", red-700 errors, emerald-600 "ready") on pale tints
+   (amber-50, red-50 …). On charcoal those read at 1.4-2.5:1, so in 42 Dark
+   the text takes the light shade of its hue and the tint becomes a
+   translucent wash of it. The Rebrand studio keeps its own palette (below). */
+@media screen {
+  html[data-k="dark"] :is(.text-amber-600, .text-amber-700, .text-amber-800) { color: rgb(252 211 77); }
+  html[data-k="dark"] :is(.text-red-600, .text-red-700) { color: rgb(252 165 165); }
+  html[data-k="dark"] :is(.text-rose-600, .text-rose-700) { color: rgb(253 164 175); }
+  html[data-k="dark"] :is(.text-emerald-600, .text-emerald-700) { color: rgb(110 231 183); }
+  html[data-k="dark"] .text-sky-600 { color: rgb(125 211 252); }
+  html[data-k="dark"] .text-cyan-600 { color: rgb(103 232 249); }
+  html[data-k="dark"] .text-violet-600 { color: rgb(196 181 253); }
+  html[data-k="dark"] .text-indigo-600 { color: rgb(165 180 252); }
+  html[data-k="dark"] .text-fuchsia-600 { color: rgb(240 171 252); }
+  html[data-k="dark"] :is(.bg-amber-50, .bg-amber-100) { background-color: rgb(245 158 11 / 0.14); }
+  html[data-k="dark"] .bg-amber-100\/50 { background-color: rgb(245 158 11 / 0.08); }
+  html[data-k="dark"] .bg-yellow-200 { background-color: rgb(234 179 8 / 0.3); }
+  html[data-k="dark"] .bg-red-50 { background-color: rgb(239 68 68 / 0.14); }
+  html[data-k="dark"] .bg-rose-50 { background-color: rgb(244 63 94 / 0.14); }
+  html[data-k="dark"] .bg-cyan-50 { background-color: rgb(6 182 212 / 0.14); }
+  html[data-k="dark"] .bg-sky-50 { background-color: rgb(14 165 233 / 0.14); }
+  html[data-k="dark"] .bg-blue-50 { background-color: rgb(59 130 246 / 0.14); }
+  html[data-k="dark"] :is(.bg-violet-50, .bg-purple-50) { background-color: rgb(139 92 246 / 0.16); }
+  html[data-k="dark"] .bg-gray-50 { background-color: rgb(var(--k-inset)); }
+}
+
+/* A ghost button that asks for white text sits on a dark overlay (over a
+   video, a black card): it stays see-through, as it was before the 42
+   buttons got a solid fill, or its label is white on white. */
+.btn-ghost.text-white {
+  background-color: transparent;
+}
+
+/* The Rebrand studio, inside Human Element Video, was built and signed off
+   on the old light palette after this theme was drawn: its video stage and
+   thumbnails are black, its warnings in amber/red on pale tints, its handles
+   white over the picture. It keeps that teal palette in the Light theme.
+   Its root carries `studio-classic`, which puts those light
+   values back on the theme variables. In Dark it takes the dark palette like
+   every other screen: its media boxes are plain black, and the white
+   handles and knobs stay white (below). */
+:root:not([data-k="dark"]) .studio-classic {
+  color-scheme: light;
+  color: rgb(var(--k-text));
+  --k-canvas: 255 255 255;
+  --k-surface: 255 255 255;
+  --k-inset: 242 242 244;
+  --k-border: 229 229 231;
+  --k-border-strong: 212 212 216;
+  --k-line: 15 16 17;
+  --k-text: 15 16 17;
+  --k-muted: 113 113 122;
+  --k-accent: 6 182 162;
+  --k-accent-hover: 4 136 118;
+  --k-btn: 6 182 162;
+  --k-onbtn: 255 255 255;
+  --k-btn-bg: var(--k-surface);
+  --k-chart: 6 182 162;
+  --k-danger: 239 68 68;
+  --k-shadow: 15 16 17;
+  --accent-rgb: 6 182 162;
+  --accent-hover-rgb: 4 136 118;
+}
+html[data-k="dark"] .studio-classic .bg-white { background-color: rgb(255 255 255); }
+html[data-k="dark"] .studio-classic .bg-white\/60 { background-color: rgb(255 255 255 / 0.6); }
+html[data-k="dark"] .studio-classic .bg-white\/70 { background-color: rgb(255 255 255 / 0.7); }
+html[data-k="dark"] .studio-classic .bg-white\/75 { background-color: rgb(255 255 255 / 0.75); }
+html[data-k="dark"] .studio-classic .bg-white\/80 { background-color: rgb(255 255 255 / 0.8); }
+html[data-k="dark"] .studio-classic .bg-white\/85 { background-color: rgb(255 255 255 / 0.85); }
+html[data-k="dark"] .studio-classic .bg-white\/90 { background-color: rgb(255 255 255 / 0.9); }
+html[data-k="dark"] .studio-classic .bg-white\/95 { background-color: rgb(255 255 255 / 0.95); }
+html[data-k="dark"] .studio-classic .bg-stone-50 { background-color: rgb(250 250 249); }
+html[data-k="dark"] .studio-classic .bg-stone-100 { background-color: rgb(245 245 244); }
+html[data-k="dark"] .studio-classic .text-black { color: rgb(0 0 0); }
+html[data-k="dark"] .studio-classic .border-white { border-color: rgb(255 255 255); }
+
+/* Anything filled with the accent carries the "on button" text colour:
+   dark text on cyan in 42 Dark, white on purple in 42 Light. */
+.bg-accent.text-white,
+.bg-accent .text-white { color: rgb(var(--k-onbtn)); }
+.bg-accent :is(.text-white\/70, .text-white\/80, .text-white\/90) { color: rgb(var(--k-onbtn) / 0.8); }
+
+/* A switch knob is white on its track in both themes. */
+html[data-k="dark"] [role="switch"] > .bg-white { background-color: rgb(255 255 255); }
+
+/* Section titles carry the website's "> " lead-in, in the accent. Opt out
+   with Tailwind's before:content-none where a title is a small label. */
+.k-title::before {
+  content: "> ";
+  color: rgb(var(--k-accent));
+}
+
+/* ---------------------------------------------------------------------------
+   42abudhabi.ae component kit (components/k42/K42.tsx)
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* StackCard: the front card, and one frame peeking out bottom-left behind it,
+     exactly like "ZERO <TUITION/>" on the website home page. */
+  .k-stack {
+    position: relative;
+    isolation: isolate;
+  }
+  .k-stack-back {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transform: translate(-9px, 9px);
+    border: 1px solid rgb(var(--k-border-strong));
+    background-color: rgb(var(--k-canvas));
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .k-stack-front {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    border-radius: 0;
+    color: rgb(var(--k-text));
+    background-color: rgb(var(--k-surface));
+    border: 1px solid rgb(var(--k-border-strong));
+    transition:
+      transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+  button.k-stack-front:focus {
+    outline: none;
+  }
+  button.k-stack-front:focus-visible {
+    outline: 2px solid rgb(var(--k-btn));
+    outline-offset: 3px;
+  }
+  /* Hover: the card lifts up-right, away from its frame. Press: it drops
+     onto the frame (instant, like a key). */
+  .k-stack:has(button.k-stack-front):hover .k-stack-front,
+  .k-stack:has(button.k-stack-front:focus-visible) .k-stack-front {
+    transform: translate(3px, -3px);
+    border-color: rgb(var(--k-btn));
+  }
+  .k-stack:has(button.k-stack-front):hover .k-stack-back {
+    transform: translate(-12px, 12px);
+    border-color: rgb(var(--k-btn) / 0.6);
+  }
+  .k-stack .k-stack-front:active {
+    transform: translate(-9px, 9px);
+    transition-duration: 90ms;
+  }
+  .k-stack-cyan .k-stack-front {
+    background-color: rgb(var(--k-cyan));
+    border-color: rgb(var(--k-cyan));
+    color: rgb(var(--k-oncyan));
+    --k-text: 26 26 26;
+    --k-accent: 26 26 26;
+    --k-coral: 26 26 26;
+  }
+  .k-stack-cyan .k-stack-back {
+    border-color: rgb(var(--k-cyan));
+  }
+  .k-stack-purple .k-stack-front {
+    background-color: rgb(var(--k-purple));
+    border-color: rgb(var(--k-purple));
+    color: #fff;
+    --k-text: 255 255 255;
+    --k-accent: 0 229 252;
+    --k-btn: 0 229 252;
+  }
+  .k-stack-purple .k-stack-back {
+    border-color: rgb(var(--k-purple));
+  }
+
+  /* BracketTitle: ZERO < TUITION /> — Jost bold uppercase, brackets in the
+     same face (as on the website), the bracketed word in the text colour. */
+  .k-bracket {
+    font-family: "Jost", "Futura PT", "Futura", system-ui, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    line-height: 1.12;
+    color: rgb(var(--k-text));
+    text-wrap: balance;
+  }
+  .k-bracket-mark {
+    font-weight: 600;
+  }
+
+  /* PixelHeadline: "Dec0de your < ambit_ >" in cyan pixel type. */
+  .k-pixel-head {
+    font-family: "Pixelify Sans", ui-monospace, monospace;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    color: rgb(var(--k-accent));
+  }
+  .k-cursor {
+    color: rgb(var(--k-coral));
+    animation: k-blink 1.1s steps(1, end) infinite;
+  }
+
+  /* CircuitMap: thin line art, never louder than the content on top of it. */
+  .k-map {
+    color: rgb(var(--k-map));
+  }
+  .k-map-streets,
+  .k-map-blocks {
+    stroke: rgb(var(--k-map) / var(--k-map-alpha));
+  }
+  .k-map-blocks {
+    stroke: rgb(var(--k-map) / calc(var(--k-map-alpha) * 0.7));
+  }
+  .k-map-sprites {
+    fill: rgb(var(--k-map) / calc(var(--k-map-alpha) * 1.4));
+  }
+  .k-map-pulse {
+    stroke: rgb(var(--k-map));
+    stroke-dasharray: 70 1400;
+    stroke-dashoffset: 1470;
+    animation: k-pulse 7s linear infinite;
+  }
+
+  /* BeadLine: thin rule with diamond beads that light up one after another. */
+  .k-bead {
+    stroke: rgb(var(--k-bead));
+    fill: rgb(var(--k-bead));
+    overflow: visible;
+  }
+  .k-feature .k-bead,
+  .k-trail .k-bead {
+    stroke: rgb(var(--k-cyan));
+    fill: rgb(var(--k-cyan));
+  }
+  .k-bead-dot {
+    animation: k-bead 2.4s ease-in-out infinite;
+  }
+
+  /* StepTrail: purple STEP cards joined by bead connectors. */
+  .k-trail {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  @media (min-width: 768px) {
+    .k-trail {
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+    }
+  }
+  .k-trail-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  @media (min-width: 768px) {
+    .k-trail-item {
+      flex-direction: row;
+      align-items: stretch;
+    }
+  }
+  .k-trail-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  @media (min-width: 768px) {
+    .k-trail-link {
+      height: auto;
+      width: 34px;
+    }
+  }
+  .k-step {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    padding: 20px 22px 22px;
+    color: #fff;
+    background-color: rgb(var(--k-purple));
+    border: 2px solid rgb(var(--k-purple));
+    --k-text: 255 255 255;
+    --k-line: 255 255 255;
+    --k-accent: 0 229 252;
+    transition:
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 160ms ease;
+  }
+  button.k-step:hover,
+  button.k-step:focus-visible {
+    transform: translate(3px, -3px);
+    box-shadow: -3px 3px 0 0 rgb(var(--k-cyan)), -6px 6px 0 0 rgb(var(--k-cyan) / 0.55);
+    outline: none;
+  }
+  button.k-step:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+    transition-duration: 80ms;
+  }
+  .k-step-current {
+    border-color: rgb(var(--k-cyan));
+    box-shadow: -3px 3px 0 0 rgb(var(--k-cyan)), -6px 6px 0 0 rgb(var(--k-cyan) / 0.55);
+  }
+  .k-step-kicker {
+    font-family: "Jost", "Futura PT", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .k-step-slash {
+    color: rgb(var(--k-cyan));
+  }
+  .k-step-title {
+    font-family: "Jost", "Futura PT", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .k-step-value {
+    font-family: "Jost", "Futura PT", system-ui, sans-serif;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-size: 56px;
+    line-height: 1;
+    color: rgb(var(--k-cyan));
+  }
+  .k-step-body {
+    font-size: 14px;
+    line-height: 1.4;
+    color: rgb(255 255 255 / 0.8);
+  }
+  .k-step-footer {
+    margin-top: auto;
+    padding-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Jost", "Futura PT", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  /* OutlineBox: the thin cyan frame (the website's rankings strip). */
+  .k-outline {
+    border: 1px solid rgb(var(--k-accent));
+    background-color: transparent;
+  }
+}
+
+@keyframes k-blink {
+  0%, 55% { opacity: 1; }
+  56%, 99% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes k-pulse {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes k-bead {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* ---------------------------------------------------------------------------
+   Page-wide map backdrop (components/k42/MapBackdrop.tsx)
+   ---------------------------------------------------------------------------
+   The 42abudhabi.ae city map behind every page. Soft on purpose: thin
+   low-alpha lines, strongest at the edges, fading out where people read. */
+.k-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(ellipse 62% 58% at 50% 46%, rgb(0 0 0 / 0.28) 0%, rgb(0 0 0 / 0.55) 55%, #000 100%);
+  mask-image: radial-gradient(ellipse 62% 58% at 50% 46%, rgb(0 0 0 / 0.28) 0%, rgb(0 0 0 / 0.55) 55%, #000 100%);
+  animation: k-backdrop-in 900ms ease-out both;
+}
+@media (min-width: 1024px) {
+  .k-backdrop {
+    left: 256px; /* the sidebar */
+  }
+}
+.k-backdrop-streets {
+  stroke: rgb(var(--k-map) / var(--k-backdrop-alpha));
+}
+.k-backdrop-blocks {
+  stroke: rgb(var(--k-map) / calc(var(--k-backdrop-alpha) * 0.75));
+}
+.k-backdrop-pulses path {
+  stroke: rgb(var(--k-map) / calc(var(--k-backdrop-alpha) * 3.6));
+  stroke-dasharray: 90 1000;
+  stroke-dashoffset: 1080;
+  opacity: 0;
+  /* A few passes, then it rests: an endless loop redraws the whole map on
+     every frame behind every page. */
+  animation: k-backdrop-pulse 13s cubic-bezier(0.45, 0, 0.55, 1) 3;
+}
+@keyframes k-backdrop-pulse {
+  0% { stroke-dashoffset: 1080; opacity: 0; }
+  4% { opacity: 1; }
+  44% { opacity: 1; }
+  48%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-backdrop-pulses { display: none; }
+}
+/* Glowing diamond beads: each lights up in turn, then rests dim. */
+.k-backdrop-beads rect {
+  fill: rgb(var(--k-bead) / 0.55);
+  opacity: 0.35;
+  animation: k-bead-glow 4.2s ease-in-out 8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-backdrop-beads rect { animation: none; }
+}
+@keyframes k-bead-glow {
+  0%, 100% { opacity: 0.35; }
+  12% { opacity: 1; }
+  30% { opacity: 0.35; }
+}
+.k-backdrop-sprites {
+  fill: rgb(var(--k-map) / calc(var(--k-backdrop-alpha) * 1.3));
+}
+:root,
+:root[data-k="dark"] {
+  --k-backdrop-alpha: 0.26;
+}
+:root[data-k="light"] {
+  --k-backdrop-alpha: 0.2;
+}
+@keyframes k-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Buttons are solid in the colour of the surface under them (see .k-btn).
+   Surfaces painted with utilities announce themselves here. */
+.bg-white,
+.bg-k-surface,
+.bg-bg-subtle,
+[role="dialog"] {
+  --k-btn-bg: var(--k-surface);
+}
+.bg-k-inset,
+.bg-bg-muted,
+.bg-bg-deep,
+.bg-stone-50,
+.bg-stone-100 {
+  --k-btn-bg: var(--k-inset);
+}
+.bg-k-purple,
+.k-stack-purple {
+  --k-btn-bg: var(--k-purple);
+}
+
+/* Chart animations wait until the chart is on screen (components/ChartGate). */
+.k-chart-gate:not(.is-in) * {
+  animation-play-state: paused !important;
+}
+/* Bars grow in from the left (transform only: cheap, no layout). */
+.k-grow-x {
+  transform-origin: left center;
+  animation: k-grow-x 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes k-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+/* A soft "live" ring on today's point of the trend line. */
+.k-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: k-ping 2.4s cubic-bezier(0, 0, 0.2, 1) 1.6s infinite both;
+}
+@keyframes k-ping {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* KPI detail window (components/dashboard/KpiDetail.tsx): grows out of the
+   tile on a soft, slightly springy curve; leaves faster along the same path. */
+.k-kpi-sheet {
+  transform-origin: center center;
+  transition: transform 560ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Bars that grow up from the floor (transform only). */
+.k-grow-y {
+  transform-origin: bottom center;
+  animation: k-grow-y 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes k-grow-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+/* Small cards rising into place. */
+.k-rise {
+  animation: k-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes k-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The same city map inside a charcoal panel (sign-in screen): always cyan,
+   a little stronger than the page backdrop, fading toward the words. */
+.k-backdrop-panel {
+  position: absolute;
+  inset: 0;
+  --k-map: 0 229 252;
+  --k-bead: 255 94 78;
+  --k-backdrop-alpha: 0.34;
+  /* quiet where the headline sits, full strength toward the edges */
+  -webkit-mask-image: radial-gradient(ellipse 60% 42% at 32% 60%, rgb(0 0 0 / 0.16) 0%, rgb(0 0 0 / 0.45) 60%, #000 100%);
+  mask-image: radial-gradient(ellipse 60% 42% at 32% 60%, rgb(0 0 0 / 0.16) 0%, rgb(0 0 0 / 0.45) 60%, #000 100%);
+  animation: k-backdrop-in 1200ms ease-out both;
+}
+
+/* Browser autofill keeps the field's own colours (Chrome paints it pale
+   yellow / white otherwise, unreadable in 42 Dark). */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(var(--k-text));
+  caret-color: rgb(var(--k-text));
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--k-surface)) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* A short, soft shake for a wrong password (still when reduced motion). */
+.k-shake {
+  animation: k-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+@keyframes k-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+/* Brand profile (pages/Brand.tsx): a colour paints itself in from the
+   bottom, like ink filling a swatch (clip-path only, no layout). */
+.k-wipe {
+  animation: k-wipe 760ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes k-wipe {
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+/* "Nothing to show here": thin diagonal hatching in the hairline colour. */
+.k-hatch {
+  background-color: rgb(var(--k-inset));
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(var(--k-border) / 0.9) 0 1px,
+    transparent 1px 9px
+  );
 }

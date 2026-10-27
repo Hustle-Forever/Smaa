@@ -23,6 +23,7 @@ that lifecycle.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import logging
 import mimetypes
 import os
@@ -389,11 +390,51 @@ _quota_wait = wait_random_exponential(multiplier=1, min=4, max=60)
 _other_wait = wait_random_exponential(multiplier=1, min=1, max=8)
 
 
+# A caller that would rather tell the person "Google is busy" than wait out a
+# busy shared pool sets this (see `quota_patience`): it caps how many attempts a
+# 429 gets and shortens the wait between them. Unset, image calls keep the
+# patient policy above. A ContextVar, so it applies to the calling task only.
+_quota_attempts: contextvars.ContextVar[int | None] = contextvars.ContextVar(
+    "image_quota_attempts", default=None)
+_quick_quota_wait = wait_random_exponential(multiplier=1, min=3, max=8)
+
+
+class quota_patience:
+    """``with quota_patience(2): await gemini_image_multipart(...)`` gives a
+    refused (429) image at most 2 attempts with a short wait between them, so it
+    fails in seconds instead of minutes. Other errors keep their usual retry."""
+
+    def __init__(self, attempts: int) -> None:
+        self._attempts = max(1, int(attempts))
+        self._token: contextvars.Token | None = None
+
+    def __enter__(self) -> "quota_patience":
+        self._token = _quota_attempts.set(self._attempts)
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        if self._token is not None:
+            _quota_attempts.reset(self._token)
+
+
 def _image_wait(retry_state) -> float:
     exc = retry_state.outcome.exception() if retry_state.outcome else None
     if exc is not None and _is_quota_error(exc):
+        if _quota_attempts.get() is not None:
+            return _quick_quota_wait(retry_state)
         return _quota_wait(retry_state)
     return _other_wait(retry_state)
+
+
+def _image_stop(retry_state) -> bool:
+    """Six attempts as before; fewer for a 429 when `quota_patience` is set."""
+    if retry_state.attempt_number >= 6:
+        return True
+    limit = _quota_attempts.get()
+    if limit is None or retry_state.outcome is None:
+        return False
+    exc = retry_state.outcome.exception()
+    return exc is not None and _is_quota_error(exc) and retry_state.attempt_number >= limit
 
 
 def _image_should_retry(exc: BaseException) -> bool:
@@ -415,7 +456,7 @@ def _image_retry():
     return retry(
         retry=retry_if_exception(_image_should_retry),
         wait=_image_wait,
-        stop=stop_after_attempt(6),
+        stop=_image_stop,
         reraise=True,
     )
 

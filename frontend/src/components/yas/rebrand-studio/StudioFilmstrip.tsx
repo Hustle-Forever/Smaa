@@ -81,7 +81,7 @@ function Card({
       } ${selected ? "bg-accent-fade" : "hover:bg-bg-muted"} ${pulse ? "animate-ringPulse" : ""}`}
     >
       <span
-        className={`relative block w-full overflow-hidden rounded-lg bg-fg ${portrait ? "aspect-[9/16]" : "aspect-video"} ${
+        className={`relative block w-full overflow-hidden rounded-lg bg-black ${portrait ? "aspect-[9/16]" : "aspect-video"} ${
           selected ? "ring-2 ring-accent" : card.dashed ? "outline-dashed outline-1 outline-offset-2 outline-border-strong" : "ring-1 ring-border"
         }`}
       >

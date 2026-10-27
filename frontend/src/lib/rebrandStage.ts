@@ -143,12 +143,15 @@ export function tileState(
   const makingId = t.making ?? opts.making ?? null;
   let badge: TileState["badge"] = null;
   let badgeTitle: string | null = null;
+  // A main scene's start set by hand (frames from its clip's first).
+  const start = t.end.start ?? null;
   if (t.ships != null) {
     badge = "rebranded";
     badgeTitle = `${name(t.ships)} is in the reel`;
-  } else if (t.end.user != null) {
+  } else if (t.end.user != null || start != null) {
     badge = "trimmed";
-    badgeTitle = `Ends at ${endSeconds(t.end.user)} s`;
+    const ends = t.end.user != null ? `Ends at ${endSeconds(t.end.user)} s` : null;
+    badgeTitle = start == null ? ends : `Starts at ${endSeconds(start)} s${ends ? `, ${ends.toLowerCase()}` : ""}`;
   }
   let problem: string | null = null;
   const p = t.pick;

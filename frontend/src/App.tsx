@@ -88,6 +88,8 @@ function tabFromHash(): Tab {
   // Legacy alias: the studio moved from #yas-producer → #producer. Keep old
   // deep-links (e.g. an already-open Video Editor session) resolving correctly.
   if (h === "yas-producer") h = "producer";
+  // Trend Radar now lives inside SMAA intelligence.
+  if (h === "radar") h = "trends";
   return VALID_TABS.includes(h as Tab) ? (h as Tab) : "dashboard";
 }
 

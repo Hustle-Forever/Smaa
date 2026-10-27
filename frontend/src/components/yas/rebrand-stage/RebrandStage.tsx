@@ -24,11 +24,12 @@
 //
 // What ships is the server's (run.reel): a tile says "Rebranded" when a
 // version goes in (its picture becomes that version's), "Trimmed" when the
-// original goes in with an end set by hand, spins while a version is being
-// made, and shows one amber "!" when something needs a look (the reason in
-// its title). A click in the studio's filmstrip moves the ✓ and the tile at
-// once (useReelChoices), and so does a move of the scene's end on the
-// studio's timeline (its grip). Finalize says what it will do: "Making Main 2…"
+// original goes in with an end (or a main scene's start) set by hand, spins
+// while a version is being made, and shows one amber "!" when something
+// needs a look (the reason in its title). A click in the studio's filmstrip
+// moves the ✓ and the tile at once (useReelChoices), and so does a move of
+// the scene's end or start on the studio's timeline (its grips). Finalize
+// says what it will do: "Making Main 2…"
 // while a version is on its way (it would ship the older pick without
 // saying so), "Rendering…", "See final →" when nothing that goes in changed
 // since the reel was made, else "Finalize →". Either, pressed while a scene
@@ -117,7 +118,7 @@ function Thumb({ urls, portrait }: { urls: (string | null | undefined)[]; portra
   const size = portrait ? "h-8 w-[22px]" : "h-[22px] w-10";
   const url = list[i];
   return (
-    <span className={`relative hidden shrink-0 overflow-hidden rounded-[4px] bg-fg sm:block ${size}`}>
+    <span className={`relative hidden shrink-0 overflow-hidden rounded-[4px] bg-black sm:block ${size}`}>
       {url ? (
         <img
           src={url}
@@ -324,7 +325,7 @@ export function RebrandStage({
     <div
       ref={cardRef}
       style={height != null ? { height } : undefined}
-      className="card -mx-3 flex flex-col rounded-none border-x-0 p-0 lg:-mx-2 lg:overflow-hidden lg:rounded-xl lg:border-x"
+      className="studio-classic card -mx-3 flex flex-col rounded-none border-x-0 p-0 lg:-mx-2 lg:overflow-hidden lg:rounded-xl lg:border-x"
     >
       {/* The scene row (44 px), sticky under the mobile header below lg. */}
       <div className="sticky top-12 z-20 flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg-subtle pl-2 pr-2 lg:static lg:pr-3">
@@ -460,6 +461,7 @@ export function RebrandStage({
             onPick={choices.pick}
             onEnd={choices.end}
             onEndDrag={onEndDrag}
+            onStart={choices.start}
             onWantFull={onWantFull}
             onVersionsChanged={choices.noteVersions}
             onDraftState={onDraftState}

@@ -347,6 +347,11 @@ export const COPY = {
     // the scene's end grip
     endLabel: "Scene end",
     endTitle: "Drag to cut · double-click: automatic",
+    // a main scene's start grip (the reel skips what is before it)
+    startLabel: "Scene start",
+    startTitle: "Drag to cut the beginning · double-click: from the first frame",
+    // something on the timeline before the scene's start
+    beforeStart: (what: string) => `${what} starts before the scene's start: the reel cuts that part`,
     flashMark: "Jumps to another shot here",
     flashBusy: "Getting these frames ready…",
     barAria: (name: string) => `${name}: when it shows`,

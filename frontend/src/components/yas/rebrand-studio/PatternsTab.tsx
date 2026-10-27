@@ -403,7 +403,7 @@ function KeptLayerRow({ row }: { row: KeptRow }) {
       className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border bg-bg-muted/50 py-1.5 pl-2.5 pr-3"
       title={COPY.keptTitle}
     >
-      <span className="h-8 w-11 shrink-0 overflow-hidden rounded-md bg-fg opacity-80">
+      <span className="h-8 w-11 shrink-0 overflow-hidden rounded-md bg-black opacity-80">
         {row.entry && <img src={previewSrc(row.entry)} alt="" draggable={false} className="h-full w-full object-contain" />}
       </span>
       <span className="min-w-0 flex-1">

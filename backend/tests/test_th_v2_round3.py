@@ -845,10 +845,10 @@ def test_the_still_price_is_the_image_model_in_use(fenv, monkeypatch):
     got, = _open(899)
     assert got["still_image_usd"] == vc._IMAGE_PRICE_USD.get(config.vertex_image_model, 0.05)
     if (config.vertex_image_pro_model, config.vertex_image_model) == \
-            ("gemini-3-pro-image-preview", "gemini-2.5-flash-image"):
+            ("gemini-3-pro-image", "gemini-2.5-flash-image"):
         assert th._still_image_usd() == 0.04
         monkeypatch.setattr(vc, "_pro_image_unavailable", False)
-        assert th._still_image_usd() == 0.13
+        assert th._still_image_usd() == 0.134
 
 
 def test_fetch_run_sends_the_work(fenv):

@@ -51,7 +51,7 @@ def test_pro_pair_defaults_to_nano_banana_pro(monkeypatch):
     monkeypatch.delenv("VERTEX_IMAGE_PRO_MODEL", raising=False)
     monkeypatch.delenv("VERTEX_IMAGE_PRO_LOCATION", raising=False)
     fresh = Config.from_env()
-    assert fresh.vertex_image_pro_model == "gemini-3-pro-image-preview"
+    assert fresh.vertex_image_pro_model == "gemini-3-pro-image"
     assert fresh.vertex_image_pro_location == "global"
 
 
@@ -257,3 +257,14 @@ if __name__ == "__main__":
         fn()
         print(f"  ok  {fn.__name__}")
     print(f"\nALL {len(fns)} card_animation tests passed.")
+
+
+def test_the_logo_ships_with_the_code_not_the_data_volume():
+    # Production mounts a volume over backend/data, which hid the old copy there:
+    # posters and cards went out without the real mark and the model drew its
+    # own. The PNG lives under app/ (baked into the image) and must exist.
+    from app.services import poster_pipeline as pp
+    assert ca.LOGO_PATH == pp.POSTER_LOGO_PATH
+    assert ca.LOGO_PATH.exists(), ca.LOGO_PATH
+    assert "data" not in ca.LOGO_PATH.relative_to(Path(ca.__file__).resolve().parents[2]).parts
+    assert ca.LOGO_PATH.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"

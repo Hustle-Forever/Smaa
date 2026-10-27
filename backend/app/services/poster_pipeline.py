@@ -1,7 +1,7 @@
 """The two-stage poster generation pipeline, as a service.
 
 Stage 1: OpenAI gpt-4o expands a topic into N radically different scene
-concepts (JSON). Stage 2: Gemini `gemini-3-pro-image-preview` renders each one,
+concepts (JSON). Stage 2: Gemini `gemini-3-pro-image` renders each one,
 with the 42 logomark and any style/background references sent as ordered image
 parts. Each render is its own `yas_poster_generations` row; siblings of one
 batch share a `variant_set_id` and split the batch cost.
@@ -27,11 +27,12 @@ provider budget is exhausted, 502/504 are transient.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from fastapi import HTTPException
 
@@ -58,6 +59,7 @@ from .vertex_client import (
     get_meter,
 )
 from . import gen_errors
+from . import vertex_client
 
 log = logging.getLogger("archivist.service.poster_pipeline")
 
@@ -97,9 +99,13 @@ POSTER_STAGE1_MAX_TOKENS = 2000
 POSTER_CONCEPTS_MAX_TOKENS = 4000
 
 # The white 42 Abu Dhabi logomark, sent as an image part in Stage 2 so the
-# model replicates the real mark instead of inventing one. Lives under
-# backend/data/branding/ (config.asset_root is backend/data/assets).
-POSTER_LOGO_PATH = (config.asset_root.parent / "branding" / "42_logo_white.png").resolve()
+# model replicates the real mark instead of inventing one. It ships inside the
+# image (backend/app/assets/branding/). It used to live in backend/data/, where
+# the production data volume is mounted over the image: the volume had no copy,
+# so every render went out without the logo while the prompt still said one was
+# attached, and Nano Banana drew its own.
+POSTER_LOGO_PATH = (Path(__file__).resolve().parent.parent / "assets" / "branding"
+                    / "42_logo_white.png")
 
 # ---------------------------------------------------------------------------
 # Output shape
@@ -438,6 +444,35 @@ async def poster_concepts(topic: str, n: int, style: PosterStyle) -> tuple[list[
 # shared process meter).
 # ---------------------------------------------------------------------------
 
+async def _create_record(
+    spec: dict,
+    image_usage: str,
+    *,
+    topic: str,
+    reference_asset_ids: list[int],
+    reference_upload_ids: list[int],
+    parent_generation_id: int | None,
+    image_model: str,
+    style: PosterStyle,
+    mode: str,
+) -> dict:
+    """The `generating` row one render fills in."""
+    return await ystore.create(
+        topic=topic,
+        status=STATUS_GENERATING,
+        mode=mode,
+        image_model=image_model,
+        style=style.key,
+        prompt_used=(spec.get("prompt") or "").strip()[:8000],
+        concept=(spec.get("concept") or "")[:300],
+        variation_of=spec.get("variation_of"),
+        image_usage=image_usage,
+        reference_asset_ids=reference_asset_ids,
+        reference_upload_ids=reference_upload_ids,
+        parent_generation_id=parent_generation_id,
+    )
+
+
 async def single_stage2(
     spec: dict,
     ref_paths: list[Path],
@@ -454,9 +489,13 @@ async def single_stage2(
     storage_prefix: str = "poster",
     render_directive: str = DEFAULT_RENDER_DIRECTIVE,
     aspect_ratio: str | None = None,
+    rec: dict | None = None,
+    quota_attempts: int | None = None,
 ) -> dict:
-    """Render one variant from a per-variant spec. Creates its own local record;
-    never raises — failures are recorded on the record and returned.
+    """Render one variant from a per-variant spec. Creates its own local record
+    (or fills `rec`, one made up front); never raises — failures are recorded on
+    the record and returned. `quota_attempts` caps the tries a 429 gets (see
+    `vertex_client.quota_patience`); None keeps the patient default.
 
     spec keys:
       prompt              — the scene text to render (concept prompt, or for
@@ -481,20 +520,17 @@ async def single_stage2(
     """
     expanded_prompt = (spec.get("prompt") or "").strip()
     variation_ref_path = spec.get("variation_ref_path")
-    rec = await ystore.create(
-        topic=topic,
-        status=STATUS_GENERATING,
-        mode=mode,
-        image_model=image_model,
-        style=style.key,
-        prompt_used=expanded_prompt[:8000],
-        concept=(spec.get("concept") or "")[:300],
-        variation_of=spec.get("variation_of"),
-        image_usage=image_usage,
-        reference_asset_ids=reference_asset_ids,
-        reference_upload_ids=reference_upload_ids,
-        parent_generation_id=parent_generation_id,
-    )
+    if rec is None:
+        rec = await _create_record(
+            spec, image_usage,
+            topic=topic,
+            reference_asset_ids=reference_asset_ids,
+            reference_upload_ids=reference_upload_ids,
+            parent_generation_id=parent_generation_id,
+            image_model=image_model,
+            style=style,
+            mode=mode,
+        )
     gen_id = int(rec["id"])
 
     try:
@@ -521,16 +557,19 @@ async def single_stage2(
         # Create-Animation frame (9:16/16:9), and Human Character (user-selected)
         # all reuse it and just vary the directive.
         parts.append(("text", f"{render_directive}\n\n{expanded_prompt}"))
-        image_bytes = await asyncio.wait_for(
-            gemini_image_multipart(
-                parts,
-                system_instruction=style.gemini_stage2_system,
-                model=GEMINI_PRO_MODEL,
-                location=GEMINI_PRO_LOCATION,
-                aspect_ratio=aspect_ratio,
-            ),
-            timeout=GEN_TIMEOUT_GEMINI_PRO_SEC,
-        )
+        patience = (vertex_client.quota_patience(quota_attempts)
+                    if quota_attempts else contextlib.nullcontext())
+        with patience:
+            image_bytes = await asyncio.wait_for(
+                gemini_image_multipart(
+                    parts,
+                    system_instruction=style.gemini_stage2_system,
+                    model=GEMINI_PRO_MODEL,
+                    location=GEMINI_PRO_LOCATION,
+                    aspect_ratio=aspect_ratio,
+                ),
+                timeout=GEN_TIMEOUT_GEMINI_PRO_SEC,
+            )
     # Every failure below lands on the CARD, so it is written for whoever is
     # looking at the grid; the raw text goes to `metadata.error_technical` and
     # the log, where it is still there for whoever is debugging. See
@@ -599,6 +638,8 @@ async def run_stage2_batch(
     render_directive: str = DEFAULT_RENDER_DIRECTIVE,
     aspect_ratio: str | None = None,
     sequential: bool = False,
+    precreated: list[dict] | None = None,
+    quota_attempts: int | None = None,
 ) -> list[dict]:
     """Render one variant per spec, split cost across the successful ones, stamp a
     shared variant_set_id, and return the records (with file_url).
@@ -622,7 +663,7 @@ async def run_stage2_batch(
     spend_before_vertex = get_meter().spent_usd
     spend_before_openai = openai_meter().spent_usd
 
-    def _render(spec: dict):
+    def _render(spec: dict, rec: dict | None):
         return single_stage2(
             spec, ref_paths, image_usage,
             topic=topic,
@@ -636,13 +677,16 @@ async def run_stage2_batch(
             storage_prefix=storage_prefix,
             render_directive=render_directive,
             aspect_ratio=aspect_ratio,
+            rec=rec,
+            quota_attempts=quota_attempts,
         )
 
+    pre = list(precreated) if precreated else [None] * n
     if sequential:
         # One Gemini call at a time — avoids the parallel-submit 429 quota.
-        recs = [await _render(spec) for spec in specs]
+        recs = [await _render(spec, r) for spec, r in zip(specs, pre)]
     else:
-        recs = await asyncio.gather(*[_render(spec) for spec in specs])
+        recs = await asyncio.gather(*[_render(spec, r) for spec, r in zip(specs, pre)])
     # Capture BOTH meters — Stage 2 may run on Vertex (Nano Banana) or OpenAI.
     total_render = max(0.0, (get_meter().spent_usd - spend_before_vertex)
                        + (openai_meter().spent_usd - spend_before_openai))
@@ -661,3 +705,87 @@ async def run_stage2_batch(
     log.info("[poster] batch done · %d/%d ready · engine=%s · variant_set=%s · $%.4f total",
              len(ok), n, image_model, variant_set_id, stage1_cost_usd + total_render)
     return out
+
+
+# Background batches must stay referenced until they finish, or the event loop
+# may drop them mid-render.
+_BACKGROUND_BATCHES: set[asyncio.Task] = set()
+
+
+async def start_stage2_batch(
+    specs: list[dict],
+    ref_paths: list[Path],
+    image_usage: str,
+    *,
+    topic: str,
+    reference_asset_ids: list[int],
+    reference_upload_ids: list[int],
+    parent_generation_id: int | None,
+    stage1_cost_usd: float,
+    image_model: str = ENGINE_GEMINI_PRO,
+    style: PosterStyle,
+    mode: str = POSTER_MODE,
+    file_route: str = "poster",
+    render_directive: str = DEFAULT_RENDER_DIRECTIVE,
+    aspect_ratio: str | None = None,
+    quota_attempts: int | None = None,
+    cleanup: Callable[[], None] | None = None,
+) -> list[dict]:
+    """`run_stage2_batch`, but answer at once: make every variant's `generating`
+    row now, return them, and render them one at a time in the background. The
+    page shows each picture as its row turns ready instead of waiting for the
+    slowest of four. The batch outlives the request, like the inline batch did
+    when a browser left mid-request, and `cleanup` (a temp file, say) runs when
+    it ends. If the batch itself crashes, rows still `generating` are failed so
+    no card waits forever."""
+    recs = [
+        await _create_record(
+            spec, image_usage,
+            topic=topic,
+            reference_asset_ids=reference_asset_ids,
+            reference_upload_ids=reference_upload_ids,
+            parent_generation_id=parent_generation_id,
+            image_model=image_model,
+            style=style,
+            mode=mode,
+        )
+        for spec in specs
+    ]
+
+    async def _run() -> None:
+        try:
+            await run_stage2_batch(
+                specs, ref_paths, image_usage,
+                topic=topic,
+                reference_asset_ids=reference_asset_ids,
+                reference_upload_ids=reference_upload_ids,
+                parent_generation_id=parent_generation_id,
+                stage1_cost_usd=stage1_cost_usd,
+                image_model=image_model,
+                style=style,
+                mode=mode,
+                file_route=file_route,
+                render_directive=render_directive,
+                aspect_ratio=aspect_ratio,
+                sequential=True,
+                precreated=recs,
+                quota_attempts=quota_attempts,
+            )
+        except Exception as exc:  # noqa: BLE001 — every card must still end
+            log.exception("[poster] background batch crashed (rows %s)", [r["id"] for r in recs])
+            for r in recs:
+                cur = await ystore.get(int(r["id"]))
+                if cur and cur.get("status") == STATUS_GENERATING:
+                    await _fail_gen(int(r["id"]), cur,
+                                    "This poster stopped before it finished. Try again.", repr(exc))
+        finally:
+            if cleanup is not None:
+                try:
+                    cleanup()
+                except Exception:  # noqa: BLE001
+                    log.warning("[poster] batch cleanup failed", exc_info=True)
+
+    task = asyncio.create_task(_run())
+    _BACKGROUND_BATCHES.add(task)
+    task.add_done_callback(_BACKGROUND_BATCHES.discard)
+    return [dict(r) for r in recs]

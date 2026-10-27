@@ -108,9 +108,10 @@ ANIMS_SQL = ("SELECT id, status, local_path, duration_sec, storage_bucket, stora
              "FROM yas_animations WHERE id = ANY(%s)")
 
 # What goes in the reel per scene: metadata.reel_choices = {target: {src,
-# pick, pending, end_frame, at}} — the version that ships (pick; the one on
-# its way: pending; None: the original) and where the scene ends (None:
-# automatic), for the clip `src`. One jsonb_set path per target, so neither
+# pick, pending, end_frame, start_frame, at}} — the version that ships (pick;
+# the one on its way: pending; None: the original), where the scene ends
+# (None: automatic) and, for a main scene, where it starts (None or absent:
+# its first frame), for the clip `src`. One jsonb_set path per target, so neither
 # another target's write nor any TH v2 writer's shallow `metadata || patch`
 # (none carries reel_choices) can clobber it; a write for another clip
 # replaces the entry instead of merging into it (its pick and end were made
@@ -752,14 +753,19 @@ def inputs(md: dict, targets: list[Target], choices: Optional[dict[str, "Choice"
     whether it is excluded, the version that goes in (None: the original)
     and the end the user set (None: automatic), plus the aspect and the
     template. An excluded segment is only that (its pick and end don't
-    count)."""
+    count). A main scene's start, when one is set, is a sixth field: a row
+    with none is exactly what it always was, so no reel finalized before
+    starts existed reads as out of date."""
     rows = []
     for t in targets:
         c = (choices or {}).get(t.target)
         if t.excluded:
             rows.append([t.target, None, True, None, None])
         else:
-            rows.append([t.target, t.src, False, c.ships if c else None, c.user_end if c else None])
+            row = [t.target, t.src, False, c.ships if c else None, c.user_end if c else None]
+            if c and c.user_start is not None:
+                row.append(c.user_start)
+            rows.append(row)
     return {"segments": rows, "aspect": aspect_of(md), "template": template_of(md)}
 
 
@@ -850,13 +856,23 @@ class Choice:
     """What one scene puts in the reel. `ships`: the version that goes in
     (None: the original) — the pending one once ready, else the pick, each
     only if made of this clip; `pick`: the newest choice and its state (the
-    pending version, else the pick); `making`: a version still being made."""
+    pending version, else the pick); `making`: a version still being made;
+    `user_start`: where a main scene starts (None: its first frame)."""
     target: str
     user_end: Optional[int] = None
     ships: Optional[int] = None
     ships_exp: Optional[dict] = None
     pick: Optional[dict] = None
     making: Optional[int] = None
+    user_start: Optional[int] = None
+
+
+def start_of(t: Target, entry: dict) -> Optional[int]:
+    """A scene's stored start (reel frames), or None: no trim — a bookend
+    plays from its first frame whatever is stored, and so does a start of
+    0 or less."""
+    s = _int(entry.get("start_frame"))
+    return s if t.role == "main" and s is not None and s > 0 else None
 
 
 def _live_ids() -> set[int]:
@@ -893,7 +909,7 @@ async def evaluate(run: dict, targets: list[Target]) -> dict[str, Choice]:
     out: dict[str, Choice] = {}
     for t in targets:
         e = entries[t.target]
-        c = Choice(t.target, user_end=_int(e.get("end_frame")))
+        c = Choice(t.target, user_end=_int(e.get("end_frame")), user_start=start_of(t, e))
         named = [i for i in (_int(e.get("pending")), _int(e.get("pick"))) if i]
         first = None
         if any(i in exps and not (exps[i].get("options") or {}).get("source") for i in named) and t.path:
@@ -965,15 +981,19 @@ class ReelState:
     io: Any = None
 
     def any_choice(self) -> bool:
-        """A version or an end chosen on an included scene of this clip."""
-        return any(not t.excluded and (self.choices[t.target].ships or self.choices[t.target].user_end)
+        """A version, an end or a start chosen on an included scene of this
+        clip."""
+        return any(not t.excluded and (self.choices[t.target].ships or self.choices[t.target].user_end
+                                       or self.choices[t.target].user_start)
                    for t in self.targets)
 
     async def block(self) -> dict:
         """The reel block (fetch_run.reel, GET/PUT …/reel): each included
         segment the reel has — every included main scene, a bookend when
         something is found for it — in reel order, and the inputs' hash
-        (Finalize's expect_sha)."""
+        (Finalize's expect_sha). A main scene trimmed at its head says
+        where it starts (end.start, reel frames from the clip's first);
+        one that isn't says nothing (the block it always was)."""
         md = self.run.get("metadata") or {}
         rows = []
         shown = [t for t in included(self.targets) if t.role == "main" or t.src]
@@ -981,11 +1001,14 @@ class ReelState:
         for t, f in zip(shown, facts):
             c = self.choices.get(t.target) or Choice(t.target)
             full, auto = _full(t, f), _auto(t, f)
+            end = {"frame": c.user_end or auto or full, "auto": auto, "user": c.user_end, "full": full}
+            if c.user_start is not None:
+                end["start"] = c.user_start
             rows.append({
                 "target": t.target, "role": t.role, "label": t.label, "src": t.src,
                 "thumb_url": _thumb(int(self.run["id"]), md, t, c),
                 "pick": c.pick, "ships": c.ships, "making": c.making,
-                "end": {"frame": c.user_end or auto or full, "auto": auto, "user": c.user_end, "full": full},
+                "end": end,
             })
         # `bookends`: this server's studio opens an intro or outro (the
         # page shows their tiles only then).
@@ -1021,11 +1044,15 @@ async def reel_of(run_id: int) -> dict:
 
 
 async def put_choice(run_id: int, target: str, fields: dict) -> dict:
-    """PUT …/reel/{target} {pick?, end_frame?} (partial: a key left out is
-    kept). A pick is a version of this scene, ready and made of its clip
-    now (else 409 "Made on an older clip."), or None: the original; it
-    clears a pending version. An end is 30 frames up to the clip's whole
-    length, or None: automatic. The reel block back (with inputs_sha)."""
+    """PUT …/reel/{target} {pick?, end_frame?, start_frame?} (partial: a key
+    left out is kept). A pick is a version of this scene, ready and made of
+    its clip now (else 409 "Made on an older clip."), or None: the
+    original; it clears a pending version. An end is 30 frames up to the
+    clip's whole length, or None: automatic. A start (a main scene's only)
+    is 0 up to 30 frames before the scene's end, or None: its first frame —
+    one within START_NEAR frames of it is stored as None. Whichever of the
+    two moves, the scene stays at least MIN_FRAMES long between them (else
+    422). The reel block back (with inputs_sha)."""
     run = await store().run(run_id)
     if run is None:
         raise HTTPException(404, f"talking-head-v2 run #{run_id} not found")
@@ -1055,13 +1082,42 @@ async def put_choice(run_id: int, target: str, fields: dict) -> dict:
             if state not in (V_READY, V_LOST):
                 raise HTTPException(409, NOT_READY_VERSION)
         patch.update(pick=vid, pending=None)
+    # The clip decoded once, and only when an end or a start needs it.
+    facts: list[Optional[Facts]] = []
+
+    async def clip() -> Optional[Facts]:
+        if not facts:
+            facts.append(await _facts_of(t, io))
+        return facts[0]
+
+    # The scene's end and start as they stand (an entry for another clip
+    # counts for nothing: this write replaces it), then as this PUT leaves them.
+    entry = entry_of(md, t)
+    user_end, user_start = _int(entry.get("end_frame")), start_of(t, entry)
     if "end_frame" in fields:
         end = _int(fields["end_frame"])
         if end is not None:
-            full = _full(t, await _facts_of(t, io))
+            full = _full(t, await clip())
             if not MIN_FRAMES <= end <= full:
                 raise HTTPException(422, f"The end must be between {MIN_FRAMES} and {full} frames.")
-        patch["end_frame"] = end
+        patch["end_frame"] = user_end = end
+    if "start_frame" in fields:
+        start = _int(fields["start_frame"])
+        if start is not None and t.role != "main":
+            raise HTTPException(422, f"Only a scene's start can be moved: {t.label} plays from its first frame.")
+        if start is not None and start < 0:
+            raise HTTPException(422, "The start can't be before the clip's first frame.")
+        # A drop on the clip's first frame or just after it is no trim at all.
+        patch["start_frame"] = user_start = start if start is not None and start > START_NEAR else None
+    if user_start is not None and ("end_frame" in fields or "start_frame" in fields):
+        f = await clip()
+        end = user_end if user_end is not None else (_auto(t, f) or _full(t, f))
+        if end - user_start < MIN_FRAMES:
+            if "start_frame" in fields:
+                raise HTTPException(422, f"The start must be between 0 and {max(0, end - MIN_FRAMES)} frames "
+                                         f"(the scene keeps at least {MIN_FRAMES} frames before its end).")
+            raise HTTPException(422, f"The end must be at least {MIN_FRAMES} frames after the start "
+                                     f"(frame {user_start}).")
     if len(patch) > 2:
         await store().set_choice(int(run_id), target, t.src, patch)
     return await reel_of(run_id)
@@ -1129,10 +1185,15 @@ class Segment:
     user_end: Optional[int] = None
     auto_end: Optional[int] = None
     full: Optional[int] = None
+    # The in-point (reel frames from the file's first): the template skips
+    # this many (trimBefore) and plays `frames` from there. 0: from the start.
+    start: int = 0
 
     def public(self) -> dict:
         body = {"target": self.target, "role": self.role, "src": self.src, "version_id": self.version_id,
                 "file_rel": poller._to_rel(self.path), "frames": int(self.frames)}
+        if self.start > 0:
+            body["start"] = int(self.start)
         if self.facts is not None or self.user_end is not None:
             body["end"] = {"src_fps": round(self.facts.fps, 3) if self.facts else None,
                            "src_frames": self.facts.frames if self.facts else None,
@@ -1161,6 +1222,9 @@ class Plan:
 
 # A segment is at least a second long (the 12-frame crossfades need 25).
 MIN_FRAMES = 30
+# A start this close (frames) to the clip's first frame is no trim (the
+# studio's AUTO_NEAR: a drop there means "from the start").
+START_NEAR = 2
 
 
 def seconds_for(frames: int) -> float:
@@ -1214,9 +1278,21 @@ def _url(path: Optional[Path]) -> Optional[str]:
     return poller._to_remotion_url(path) if path is not None else None
 
 
+def _scene_entry(s: Segment) -> dict:
+    """A main scene in the multi-scene template's `scenes`: its file and
+    seconds, and the frames it skips at its head only when it is trimmed
+    there (an untrimmed scene's entry is today's)."""
+    entry: dict = {"path": _url(s.path), "duration_sec": float(s.seconds)}
+    if s.start > 0:
+        entry["trim_before_frames"] = int(s.start)
+    return entry
+
+
 def payload(md: dict, targets: list[Target], segments: list[Segment]) -> dict:
     """The Remotion /render body (no output_path: the poller adds the file
-    it renders to), key for key as today's stitch sends it."""
+    it renders to), key for key as today's stitch sends it — plus, for a
+    main scene trimmed at its head, the frames its video skips (the only
+    key a reel with no start never has)."""
     by = {s.target: s for s in segments}
     intro = next((by.get(t.target) for t in targets if t.role == "intro"), None)
     outro = next((by.get(t.target) for t in targets if t.role == "outro"), None)
@@ -1234,7 +1310,7 @@ def payload(md: dict, targets: list[Target], segments: list[Segment]) -> dict:
             "props": {
                 "intro_video_path": intro_url,
                 "outro_video_path": outro_url,
-                "scenes": [{"path": _url(s.path), "duration_sec": float(s.seconds)} for s in mains],
+                "scenes": [_scene_entry(s) for s in mains],
                 "intro_duration_sec": float(intro_sec),
                 "outro_duration_sec": float(outro_sec),
                 "fade_sec": FADE_SEC,
@@ -1243,22 +1319,22 @@ def payload(md: dict, targets: list[Target], segments: list[Segment]) -> dict:
             },
         }
     main = mains[0]
-    return {
-        "template": TEMPLATE_SINGLE,
-        "props": {
-            "intro_image_path": None,
-            "intro_video_path": intro_url,
-            "main_video_path": _url(main.path),
-            "outro_image_path": None,
-            "outro_video_path": outro_url,
-            "intro_duration_sec": float(intro_sec),
-            "outro_duration_sec": float(outro_sec),
-            "fade_sec": FADE_SEC,
-            "main_duration_sec": main.seconds,
-            "width": comp_w,
-            "height": comp_h,
-        },
+    props = {
+        "intro_image_path": None,
+        "intro_video_path": intro_url,
+        "main_video_path": _url(main.path),
+        "outro_image_path": None,
+        "outro_video_path": outro_url,
+        "intro_duration_sec": float(intro_sec),
+        "outro_duration_sec": float(outro_sec),
+        "fade_sec": FADE_SEC,
+        "main_duration_sec": main.seconds,
+        "width": comp_w,
+        "height": comp_h,
     }
+    if main.start > 0:
+        props["main_trim_before_frames"] = int(main.start)
+    return {"template": TEMPLATE_SINGLE, "props": props}
 
 
 def _is_main_veo(t: Target) -> bool:
@@ -1277,24 +1353,31 @@ async def _segment(t: Target, io: Io, c: Optional[Choice] = None) -> Segment:
     end = the user's end, else the automatic cut (a main Veo scene's tail
     flash), else the whole clip. The original takes F = end; a picked
     version takes F = min(its frames, end) — so a version made on the uncut
-    clip is cut at the flash too. A segment with no cut, no end and no pick
-    is sent exactly today's seconds (a clean reel's payload is today's, byte
-    for byte); otherwise its frames F go as seconds_for(F), at least
-    MIN_FRAMES."""
+    clip is cut at the flash too. A segment with no cut, no end, no start
+    and no pick is sent exactly today's seconds (a clean reel's payload is
+    today's, byte for byte); otherwise its frames F go as seconds_for(F), at
+    least MIN_FRAMES.
+    A main scene's start S (the studio works in the clip's own frames, so
+    a version is trimmed exactly as the original is) is applied here only:
+    the template skips S frames of the file and plays F = end - S, S held
+    to MIN_FRAMES before the end (a version shorter than the end chosen
+    never plays past its own last frame)."""
     seg = Segment(target=t.target, role=t.role, src=t.src or "", path=t.path,
                   frames=js_round(float(t.seconds) * FPS), seconds=t.seconds)
     user_end = c.user_end if c else None
+    user_start = c.user_start if c and t.role == "main" else None
     version = c.ships_exp if c and c.ships else None
+    chosen = user_end is not None or user_start is not None or version is not None
     facts = None
-    if _is_main_veo(t) or user_end is not None or version is not None:
+    if _is_main_veo(t) or chosen:
         # Bookends are decoded only when chosen for: 0 of 75 four-second
         # clips flash, and the detector false-cuts on an animated card, so
         # they are never cut automatically.
         facts = await _facts_of(t, io)
     auto = _auto(t, facts)
     seg.facts, seg.user_end, seg.auto_end = facts, user_end, auto
-    seg.full = _full(t, facts) if (facts is not None or user_end is not None or version is not None) else None
-    if user_end is None and auto is None and version is None:
+    seg.full = _full(t, facts) if (facts is not None or chosen) else None
+    if not chosen and auto is None:
         return seg
     end = user_end if user_end is not None else (auto if auto is not None else seg.full)
     if version is not None:
@@ -1306,7 +1389,8 @@ async def _segment(t: Target, io: Io, c: Optional[Choice] = None) -> Segment:
             raise HTTPException(409, f"The version picked for {t.label} isn't where the renderer can read it.")
         seg.path, seg.version_id = f, int(c.ships)
         end = min(await asyncio.to_thread(count_frames, f), end)
-    seg.frames = max(MIN_FRAMES, int(end))
+    seg.start = max(0, min(int(user_start or 0), int(end) - MIN_FRAMES))
+    seg.frames = max(MIN_FRAMES, int(end) - seg.start)
     seg.seconds = seconds_for(seg.frames)
     return seg
 

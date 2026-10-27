@@ -129,7 +129,7 @@ export function AdvancedSection() {
                   className={[
                     "px-4 py-1.5 text-sm font-medium transition-colors",
                     draft.mode === m
-                      ? "bg-fg text-white"
+                      ? "bg-fg text-bg"
                       : "bg-bg-subtle text-fg/80 hover:bg-bg-muted",
                   ].join(" ")}
                 >

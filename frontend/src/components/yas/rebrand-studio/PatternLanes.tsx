@@ -317,7 +317,7 @@ export function PatternLanes({
                   </span>
                 )}
                 {p.thumb && barPx >= 90 && (
-                  <img src={p.thumb} alt="" draggable={false} className="relative h-4 w-6 shrink-0 rounded-sm bg-fg object-contain" />
+                  <img src={p.thumb} alt="" draggable={false} className="relative h-4 w-6 shrink-0 rounded-sm bg-black object-contain" />
                 )}
                 <span className="relative min-w-0 truncate">{p.name}</span>
                 {p.full && barPx >= 150 && (

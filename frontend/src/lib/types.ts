@@ -1318,6 +1318,41 @@ export interface TalkingHeadArchivedScene {
   archived_at?: string | null;
 }
 
+/** How loud the background music sits under the speaker. */
+export type ReelMusicLevel = "soft" | "medium" | "loud";
+
+/** run.music — background music under the finished reel (services/
+ *  th_reel_music.public_state). The reel without music is never changed:
+ *  music_url is a separate version of it. */
+export interface ReelMusicState {
+  /** Suno is set up on this server. */
+  available: boolean;
+  /** The music is wanted on the reel, and how loud. */
+  on: boolean;
+  level: ReelMusicLevel;
+  /** The newest track asked for (null: none, or the music was removed). */
+  track_status: "generating" | "ready" | "failed" | null;
+  /** That track's vibe, and why it failed. */
+  brief: string | null;
+  error: string | null;
+  /** A track to put under the reel, its vibe and length. While a new one is
+   *  made this is still the one playing. */
+  has_track: boolean;
+  track_brief: string | null;
+  sec: number | null;
+  /** The wanted music is on the reel being served. */
+  applied: boolean;
+  /** The server is laying it under the reel (poll until it is done). */
+  mixing: boolean;
+  /** Why laying it under the reel failed. */
+  mix_error: string | null;
+  /** The music version to show (null: show the reel) and which one it is. */
+  music_url: string | null;
+  mix_id: string | null;
+  /** The reel's length, when known. */
+  reel_sec: number | null;
+}
+
 export interface TalkingHeadRun {
   id: number;
   topic: string;
@@ -1367,6 +1402,9 @@ export interface TalkingHeadRun {
   composition_good_seq?: number | null;
   composition_error?: string | null;
   saved_current?: boolean;
+  /** Background music under the finished reel (the Final step). Absent on an
+   * older backend. */
+  music?: ReelMusicState | null;
   /** The reel scene by scene (the Rebrand stage): null until every included
    * clip is made; absent on an older backend. */
   reel?: ReelBlock | null;
@@ -1412,7 +1450,8 @@ export type ReelPickState = "ready" | "running" | "failed" | "lost" | "other_cli
  * its state; `ships` what actually goes in (null: the original); `making` a
  * version still being made for it; `end` its end in the reel's 30 fps
  * frames (`user`: set by hand, `auto`: the tail-flash cut, `full`: the
- * whole clip). */
+ * whole clip) and, for a main scene trimmed at its head, where it starts
+ * (`start`, frames from the clip's first; absent or null: no trim). */
 export interface ReelTarget {
   target: string;
   role: "intro" | "main" | "outro";
@@ -1422,7 +1461,7 @@ export interface ReelTarget {
   pick: { version_id: number; state: ReelPickState } | null;
   ships: number | null;
   making: number | null;
-  end: { frame: number; auto: number | null; user: number | null; full: number };
+  end: { frame: number; auto: number | null; user: number | null; full: number; start?: number | null };
 }
 
 /** GET/PUT …/reel and fetch_run.reel. `inputs_sha` is what Finalize sends
@@ -1437,10 +1476,12 @@ export interface ReelBlock {
 }
 
 /** PUT …/reel/{target}: a key left out is kept. pick null = the original;
- * end_frame null = automatic. */
+ * end_frame null = automatic; start_frame (a main scene's) null = from its
+ * clip's first frame. */
 export interface ReelChoicePatch {
   pick?: number | null;
   end_frame?: number | null;
+  start_frame?: number | null;
 }
 
 // ----- Talking Head v2 editor request bodies -----
@@ -1653,6 +1694,8 @@ export interface YasPosterOnlyGeneration extends YasGeneration {
 export interface YasPosterBatchResponse {
   items: YasPosterOnlyGeneration[];
   remaining_this_hour?: number;
+  /** The rows came back `generating` and render in the background: poll each. */
+  progressive?: boolean;
 }
 
 // ----- Yas Producer · Human Character (Ideation → Human Character) -----
@@ -1694,6 +1737,7 @@ export interface YasPosterOnlyGenerateRequest {
   image_model?: YasImageModel; // "gemini_pro" (Nano Banana, default) | "openai"
   style?: YasPosterStyle; // "voxel" (default) | "voxel_classic" | "pattern" | "popup"
   aspect?: YasPosterAspect; // "1:1" (default) | "9:16" | "16:9"
+  progressive?: boolean; // answer with `generating` rows now, render in the background
 }
 
 // ----- Frame extraction (video IG categories → Asset import) -----

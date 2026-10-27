@@ -24,7 +24,10 @@
 //
 // End changes (the timeline's grip) take the same queue: `end(t, frame)`
 // moves the tile and the grip at once, and its PUT goes out at once too —
-// keyboard nudges are joined for 300 ms first (the last one wins).
+// keyboard nudges are joined for 300 ms first (the last one wins). A main
+// scene's start (the left grip) is the same: `start(t, frame)`. A move of
+// one sends the other's nudge still waiting first, so the server always
+// gets them in the order they were made (it keeps a second between them).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -185,25 +188,57 @@ export function useReelChoices({
     [send],
   );
 
+  /** A move of the end or the start (`patch`), its overlay made from the
+   *  scene's end block (`change`) as last laid — so an end and a start
+   *  moved one after the other both show — then its PUT: at once, or, a
+   *  nudge, joined with the next of its kind for 300 ms. Its nudges wait
+   *  under `key`; the other kind's (`other`) still waiting goes first. */
+  const trim = useCallback(
+    (
+      target: string,
+      key: string,
+      other: string,
+      change: (e: ReelTarget["end"]) => ReelTarget["end"],
+      patch: ReelChoicePatch,
+      nudge: boolean,
+    ) => {
+      const pending = nudges.current.get(other);
+      if (pending) {
+        window.clearTimeout(pending.timer);
+        pending.go();
+      }
+      const was = overlays.current.get(target)?.end ?? runRef.current.reel?.targets.find((x) => x.target === target)?.end;
+      const overlay: Overlay = was ? { end: change(was) } : {};
+      overlays.current.set(target, { ...overlays.current.get(target), ...overlay });
+      setRun((prev) => (prev?.reel && prev.id === runId ? { ...prev, reel: laid(prev.reel, overlays.current) } : prev));
+      const go = () => {
+        nudges.current.delete(key);
+        send(target, patch, overlay);
+      };
+      const waiting = nudges.current.get(key);
+      if (waiting) window.clearTimeout(waiting.timer);
+      if (!nudge) go();
+      else nudges.current.set(key, { timer: window.setTimeout(go, NUDGE_MS), go });
+    },
+    [runId, setRun, send],
+  );
+
   /** Where `target` ends (30 fps frames; null: automatic). `nudge`: a
    *  keyboard step, joined with the next for 300 ms (the grip and the tile
    *  move at once all the same). */
   const end = useCallback(
-    (target: string, frame: number | null, nudge = false) => {
-      const t = runRef.current.reel?.targets.find((x) => x.target === target);
-      const overlay: Overlay = t ? { end: { ...t.end, user: frame, frame: frame ?? t.end.auto ?? t.end.full } } : {};
-      overlays.current.set(target, { ...overlays.current.get(target), ...overlay });
-      setRun((prev) => (prev?.reel && prev.id === runId ? { ...prev, reel: laid(prev.reel, overlays.current) } : prev));
-      const go = () => {
-        nudges.current.delete(target);
-        send(target, { end_frame: frame }, overlay);
-      };
-      const waiting = nudges.current.get(target);
-      if (waiting) window.clearTimeout(waiting.timer);
-      if (!nudge) go();
-      else nudges.current.set(target, { timer: window.setTimeout(go, NUDGE_MS), go });
-    },
-    [runId, setRun, send],
+    (target: string, frame: number | null, nudge = false) =>
+      trim(target, target, `${target}:start`, (e) => ({ ...e, user: frame, frame: frame ?? e.auto ?? e.full }),
+        { end_frame: frame }, nudge),
+    [trim],
+  );
+
+  /** Where a main scene `target` starts (30 fps frames from its clip's
+   *  first; null: no trim). `nudge` as the end's. */
+  const start = useCallback(
+    (target: string, frame: number | null, nudge = false) =>
+      trim(target, `${target}:start`, target, (e) => ({ ...e, start: frame }), { start_frame: frame }, nudge),
+    [trim],
   );
 
   /** Every PUT sent (and any nudge waiting) has landed, and so has a read
@@ -291,5 +326,5 @@ export function useReelChoices({
 
   const lastShaOf = useCallback(() => lastSha.current, []);
 
-  return { pick, end, flush, refresh, noteVersions, started, no, endOf, lastSha: lastShaOf };
+  return { pick, end, start, flush, refresh, noteVersions, started, no, endOf, lastSha: lastShaOf };
 }

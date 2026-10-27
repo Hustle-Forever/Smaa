@@ -15,13 +15,13 @@ const VARIANTS = {
   compact: {
     wrapper: "inline-flex rounded-lg border border-border p-0.5 gap-0.5",
     btn: "px-2.5 py-1 rounded-md text-xs transition-colors",
-    active: "bg-fg text-white",
+    active: "bg-fg text-bg",
     idle: "text-fg/70 hover:bg-bg-muted",
   },
   tab: {
     wrapper: "inline-flex rounded-lg bg-bg-muted p-1 gap-1",
     btn: "px-3 py-1 rounded-md text-sm transition-colors",
-    active: "bg-bg shadow-sm text-fg",
+    active: "bg-bg-subtle shadow-sm ring-1 ring-border text-fg",
     idle: "text-fg/60 hover:text-fg",
   },
 } as const;

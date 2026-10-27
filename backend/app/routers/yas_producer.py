@@ -3824,7 +3824,7 @@ async def th_composition_file(run_id: int):
 # ===========================================================================
 # POSTER MODE — two-stage static poster generation
 #   Stage 1: OpenAI gpt-4o expands the topic into a retro-voxel scene desc.
-#   Stage 2: Gemini gemini-3-pro-image-preview renders it, with the 42 logo
+#   Stage 2: Gemini gemini-3-pro-image renders it, with the 42 logo
 #            + optional references sent as ordered image parts.
 # ===========================================================================
 
@@ -3887,6 +3887,7 @@ from ..services.poster_pipeline import (  # noqa: E402
     poster_slots_remaining as _poster_slots_remaining,
     run_stage2_batch as _run_stage2_batch,
     single_stage2 as _single_stage2,
+    start_stage2_batch as _start_stage2_batch,
     POSTER_ASPECTS,
     DEFAULT_POSTER_ASPECT,
     aspect_from_dims as _aspect_from_dims,
@@ -3942,6 +3943,15 @@ class PosterGenerateRequest(BaseModel):
     image_model: str = ENGINE_GEMINI_PRO  # "gemini_pro" (Nano Banana) | "openai" (gpt-image-1)
     style: str = DEFAULT_POSTER_STYLE  # "voxel" (default) | "voxel_classic" | "pattern" | "popup"
     aspect: str = DEFAULT_POSTER_ASPECT  # "1:1" (default) | "9:16" | "16:9"
+    # True: answer as soon as the four rows exist (all `generating`) and render
+    # them in the background; the page polls each row and shows it when ready.
+    progressive: bool = False
+
+
+# A refused (429) poster render gets this many attempts, a few seconds apart,
+# then fails with "busy, try again" — instead of the image tools' patient
+# policy, which can hold one card for minutes.
+POSTER_QUOTA_ATTEMPTS = 2
 
 
 def _norm_engine(image_model: str | None) -> str:
@@ -4028,6 +4038,21 @@ async def poster_generate(body: PosterGenerateRequest) -> dict:
 
     # --- Stage 2: render each concept ONE AT A TIME (sequential) to avoid the
     # parallel-submit image-gen 429 quota. ---
+    if body.progressive:
+        items = await _start_stage2_batch(
+            specs, ref_paths, image_usage,
+            topic=topic,
+            reference_asset_ids=body.reference_asset_ids,
+            reference_upload_ids=body.reference_upload_ids,
+            parent_generation_id=None,
+            stage1_cost_usd=stage1_cost,
+            image_model=engine,
+            style=style,
+            render_directive=_render_directive_for(aspect),
+            aspect_ratio=aspect,
+            quota_attempts=POSTER_QUOTA_ATTEMPTS,
+        )
+        return {"items": items, "remaining_this_hour": remaining_after, "progressive": True}
     items = await _run_stage2_batch(
         specs, ref_paths, image_usage,
         topic=topic,
@@ -4040,6 +4065,7 @@ async def poster_generate(body: PosterGenerateRequest) -> dict:
         render_directive=_render_directive_for(aspect),
         aspect_ratio=aspect,
         sequential=True,
+        quota_attempts=POSTER_QUOTA_ATTEMPTS,
     )
     return {"items": items, "remaining_this_hour": remaining_after}
 
@@ -4047,6 +4073,7 @@ async def poster_generate(body: PosterGenerateRequest) -> dict:
 class PosterVariantsRequest(BaseModel):
     parent_id: int
     image_model: str = ENGINE_GEMINI_PRO  # engine for THIS explore action
+    progressive: bool = False  # see PosterGenerateRequest.progressive
 
 
 class RefineRequest(BaseModel):
@@ -4090,6 +4117,9 @@ async def poster_variants(body: PosterVariantsRequest) -> dict:
         _ptf.write(parent_bytes)
         parent_img = Path(_ptf.name)
 
+    # A background batch still reads the anchor image after this request ends,
+    # so it removes the temp file itself; otherwise `finally` does.
+    handed_off = False
     try:
         image_usage = parent.get("image_usage") or "style"
         asset_ids = parent.get("reference_asset_ids") or []
@@ -4125,6 +4155,23 @@ async def poster_variants(body: PosterVariantsRequest) -> dict:
         engine = _norm_engine(body.image_model)
         log.info("[poster] exploring %d variations of #%d · refs=%d · engine=%s · style=%s · aspect=%s",
                  POSTER_VARIANT_COUNT, body.parent_id, len(ref_paths), engine, style.key, aspect)
+        if body.progressive:
+            items = await _start_stage2_batch(
+                specs, ref_paths, image_usage,
+                topic=parent.get("topic") or "",
+                reference_asset_ids=asset_ids,
+                reference_upload_ids=upload_ids,
+                parent_generation_id=body.parent_id,
+                stage1_cost_usd=0.0,
+                image_model=engine,
+                style=style,
+                render_directive=_render_directive_for(aspect),
+                aspect_ratio=aspect,
+                quota_attempts=POSTER_QUOTA_ATTEMPTS,
+                cleanup=lambda: parent_img.unlink(missing_ok=True),
+            )
+            handed_off = True
+            return {"items": items, "remaining_this_hour": remaining_after, "progressive": True}
         items = await _run_stage2_batch(
             specs, ref_paths, image_usage,
             topic=parent.get("topic") or "",
@@ -4137,10 +4184,12 @@ async def poster_variants(body: PosterVariantsRequest) -> dict:
             render_directive=_render_directive_for(aspect),
             aspect_ratio=aspect,
             sequential=True,
+            quota_attempts=POSTER_QUOTA_ATTEMPTS,
         )
         return {"items": items, "remaining_this_hour": remaining_after}
     finally:
-        parent_img.unlink(missing_ok=True)
+        if not handed_off:
+            parent_img.unlink(missing_ok=True)
 
 
 @router.post("/poster/{gen_id}/remove-logo")
@@ -5396,9 +5445,11 @@ async def th_v2_stitch(run_id: int, body: Optional[THV2StitchRequest] = None) ->
 class THV2ReelChoiceRequest(BaseModel):
     # Partial: a key left out is kept. pick: a version id, or null for the
     # original; end_frame: the scene's end in the reel's 30 fps frames, or
-    # null for automatic.
+    # null for automatic; start_frame: a main scene's start in the same
+    # frames (from its clip's first), or null for its first frame.
     pick: Optional[int] = None
     end_frame: Optional[int] = None
+    start_frame: Optional[int] = Field(default=None, ge=0, le=900)
 
 
 _REEL_TARGET = r"^(scene_\d{1,2}|intro|outro)$"
@@ -5420,12 +5471,50 @@ async def th_v2_reel_choice(
     target: str = FastAPIPath(..., pattern=_REEL_TARGET),
 ) -> dict:
     """A scene's pick (the version that goes in the reel; null: the
-    original) and/or end (null: automatic). 409 "Made on an older clip."
-    for a version of the scene's previous clip. The whole reel block back,
-    with its new inputs_sha."""
+    original), end (null: automatic) and/or start (a main scene's; null:
+    its first frame). 409 "Made on an older clip." for a version of the
+    scene's previous clip; 422 for an end or a start that would leave the
+    scene under a second. The whole reel block back, with its new
+    inputs_sha."""
     from ..services import th_reel
 
     return await th_reel.put_choice(run_id, target, {k: getattr(body, k) for k in body.model_fields_set})
+
+
+class THV2MusicRequest(BaseModel):
+    # The vibe, in the user's words ("slow jazz piano"); the service trims it
+    # and wants 1..200 characters.
+    brief: str = Field(default="", max_length=1000)
+
+
+class THV2MusicApplyRequest(BaseModel):
+    on: bool
+    level: Optional[Literal["soft", "medium", "loud"]] = None
+    # "Remove music": off, and the panel starts over (the files are kept).
+    remove: bool = False
+
+
+@router.post("/talking-head-v2/{run_id}/music")
+async def th_v2_music(run_id: int, body: THV2MusicRequest) -> dict:
+    """Background music (Final): ask Suno for an instrumental track in this
+    vibe. Paid, so only this explicit press starts it; the poller collects
+    the track and lays it under the finished reel. 409 without a finished
+    reel or while a track is being made. The whole run back."""
+    from ..services import th_reel_music
+
+    await th_reel_music.start_track(run_id, body.brief)
+    return await th_v2_service.fetch_run(run_id)
+
+
+@router.post("/talking-head-v2/{run_id}/music/apply")
+async def th_v2_music_apply(run_id: int, body: THV2MusicApplyRequest) -> dict:
+    """The music on (laid under the reel being served, at `level`; seconds,
+    free) or off. The reel without music is never changed. The whole run
+    back."""
+    from ..services import th_reel_music
+
+    await th_reel_music.apply_mix(run_id, body.on, body.level, remove=body.remove)
+    return await th_v2_service.fetch_run(run_id)
 
 
 @router.get("/talking-head-v2/{run_id}")
@@ -5637,14 +5726,17 @@ async def _th_v2_video_role(run_id: int, role: str):
 
 
 @router.get("/talking-head-v2/{run_id}/composition/file")
-async def th_v2_composition_file(run_id: int, download: bool = False):
+async def th_v2_composition_file(run_id: int, download: bool = False, music: bool = False):
     """Stream the final stitched composition MP4. `?download=1` forces a
     save-to-disk (Content-Disposition: attachment) instead of inline playback —
-    used by the Finalization "Download video" button."""
+    used by the Finalization "Download video" button. `?music=1`: the music
+    version instead (services/th_reel_music), its own file beside the reel."""
     from ..services import th_reel
 
     run = await th_v2_service._fetch_run_row(run_id)
     md = run.get("metadata") or {}
+    if music:
+        return await _th_v2_music_file(run_id, md, download)
     # A reel finalized again (render_owner) is served from its last good file
     # whatever its status — a new render under way or failed keeps it on
     # screen. A legacy render rewrites final.mp4 in place, so it is served
@@ -5682,6 +5774,31 @@ async def th_v2_composition_file(run_id: int, download: bool = False):
         if signed:
             return RedirectResponse(signed, status_code=307)
     raise HTTPException(410, "Composition file missing (no local copy and no bucket object)")
+
+
+async def _th_v2_music_file(run_id: int, md: dict, download: bool):
+    """The reel's music version: its last mix, whatever the switch says (a
+    page may still be playing it) — this disk first, then its bucket copy.
+    Revalidated like the reel (?v=<seq>&m=<mix> name the version)."""
+    from ..services import th_reel_music
+
+    mix = th_reel_music.served_mix(md)
+    if mix is None:
+        raise HTTPException(409, "No music on this reel yet")
+    name = f"talking-head-{run_id}-music.mp4"
+    if mix["path"] is not None:
+        headers = dict(_REEL_CACHE_HEADERS)
+        if download:
+            headers["Content-Disposition"] = f'attachment; filename="{name}"'
+        return FileResponse(str(mix["path"]), media_type="video/mp4", headers=headers)
+    if mix["bucket"] and mix["key"]:
+        signed = await asset_storage.url_for(
+            storage_bucket=mix["bucket"], storage_path=mix["key"], local_path=None,
+            expires=3600, download_name=name if download else None,
+        )
+        if signed:
+            return RedirectResponse(signed, status_code=307)
+    raise HTTPException(410, "Music file missing (no local copy and no bucket object)")
 
 
 # ---------------------------------------------------------------------------

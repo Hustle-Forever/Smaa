@@ -28,6 +28,10 @@ import {
 export type MultiSceneEntry = {
   path: string;            // HTTP URL the Remotion server can fetch
   duration_sec: number;    // typically 8s for main scenes
+  /** Frames (30 fps) of the clip skipped at its head: the scene's start
+   *  moved on the Rebrand timeline. Absent or 0: from its first frame. Its
+   *  sound is cut with it; duration_sec is what plays after it. */
+  trim_before_frames?: number;
 };
 
 export type TalkingHeadV2MultiSceneProps = {
@@ -48,12 +52,21 @@ const DEFAULT_BOOKEND_SEC = 4;
 const DEFAULT_AUDIO_FADE_SEC = 0.2;
 
 
+/** A scene's head trim as <OffthreadVideo trimBefore> takes it: only a
+ *  positive whole frame count (undefined otherwise: the clip as ever). */
+function trimOf(frames: number | undefined): number | undefined {
+  const n = Math.round(frames || 0);
+  return n > 0 ? n : undefined;
+}
+
+
 function buildSegments(props: TalkingHeadV2MultiSceneProps): {
   src: string;
   durSec: number;
   silent: boolean;
+  trimBefore?: number;
 }[] {
-  const segments: { src: string; durSec: number; silent: boolean }[] = [];
+  const segments: { src: string; durSec: number; silent: boolean; trimBefore?: number }[] = [];
   if (props.intro_video_path) {
     segments.push({
       src: props.intro_video_path,
@@ -67,6 +80,9 @@ function buildSegments(props: TalkingHeadV2MultiSceneProps): {
       src: s.path,
       durSec: Math.max(0.5, s.duration_sec || 8),
       silent: false,
+      // The length is the payload's already (what plays after the trim):
+      // calculateMetadata needs nothing from it.
+      trimBefore: trimOf(s.trim_before_frames),
     });
   }
   if (props.outro_video_path) {
@@ -179,6 +195,7 @@ export const TalkingHeadV2MultiScene: React.FC<TalkingHeadV2MultiSceneProps> = (
   const segMeta: {
     src: string;
     silent: boolean;
+    trimBefore?: number;
     durFrames: number;
     startFrame: number;
     hasFadeIn: boolean;
@@ -193,6 +210,7 @@ export const TalkingHeadV2MultiScene: React.FC<TalkingHeadV2MultiSceneProps> = (
     segMeta.push({
       src: s.src,
       silent: s.silent,
+      trimBefore: s.trimBefore,
       durFrames,
       startFrame: cursor,
       hasFadeIn,
@@ -224,6 +242,7 @@ export const TalkingHeadV2MultiScene: React.FC<TalkingHeadV2MultiSceneProps> = (
               <SceneClip
                 src={m.src}
                 silent={m.silent}
+                trimBefore={m.trimBefore}
                 durationFrames={m.durFrames}
                 audioFadeInFrames={m.hasFadeIn ? audioFadeFrames : 0}
                 audioFadeOutFrames={m.hasFadeOut ? audioFadeFrames : 0}
@@ -239,14 +258,17 @@ export const TalkingHeadV2MultiScene: React.FC<TalkingHeadV2MultiSceneProps> = (
 
 /** A single video clip with an interpolated audio volume curve. Lives in
  *  its own component so useCurrentFrame() reads the per-Sequence frame
- *  (Remotion resets it inside each <Sequence>). */
+ *  (Remotion resets it inside each <Sequence>). `trimBefore`: the frames
+ *  of the clip skipped at its head (its sound too); the fades stay on the
+ *  Sequence's own frames, so they fall where the trimmed scene starts. */
 const SceneClip: React.FC<{
   src: string;
   silent: boolean;
+  trimBefore?: number;
   durationFrames: number;
   audioFadeInFrames: number;
   audioFadeOutFrames: number;
-}> = ({ src, silent, durationFrames, audioFadeInFrames, audioFadeOutFrames }) => {
+}> = ({ src, silent, trimBefore, durationFrames, audioFadeInFrames, audioFadeOutFrames }) => {
   const frame = useCurrentFrame();
   const volumeFn = audioVolume({
     silent,
@@ -258,6 +280,7 @@ const SceneClip: React.FC<{
   return (
     <OffthreadVideo
       src={src}
+      trimBefore={trimBefore}
       volume={volume}
       muted={silent}
       style={{ width: "100%", height: "100%", objectFit: "cover" }}

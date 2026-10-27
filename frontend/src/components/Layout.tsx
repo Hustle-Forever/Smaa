@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import type { Tab } from "../App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { MobileNav } from "./MobileNav";
+import { MapBackdrop } from "./k42/MapBackdrop";
 import { LayoutChromeProvider, type ChromeClaim } from "./LayoutChrome";
 import { PageTransition } from "./PageTransition";
 import { Sidebar } from "./Sidebar";
@@ -76,11 +77,11 @@ export function Layout({ tab, onTab, children, persistent, persistentTab = "prod
 
       {/* Mobile top bar. The sidebar is desktop-only, so this is where the
           eight destinations are reachable from below lg. */}
-      <header className="lg:hidden sticky top-0 z-30 border-b border-border bg-bg-subtle/95 backdrop-blur supports-[backdrop-filter]:bg-bg-subtle/80">
+      <header className="lg:hidden sticky top-0 z-30 border-b border-white/[0.06] bg-k-rail text-white">
         <div className="px-4 h-12 flex items-center gap-3">
           <button
             onClick={() => setNavOpen(true)}
-            className="-ml-1 w-9 h-9 shrink-0 rounded flex items-center justify-center text-fg hover:bg-bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="-ml-1 w-10 h-10 shrink-0 rounded-lg flex items-center justify-center text-white hover:bg-white/[0.08] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-k-cyan/70"
             aria-label="Open navigation"
             aria-expanded={navOpen}
           >
@@ -91,12 +92,10 @@ export function Layout({ tab, onTab, children, persistent, persistentTab = "prod
             className="flex items-center gap-2 min-w-0"
             aria-label="Go to dashboard"
           >
-            <span className="inline-flex w-6 h-6 items-center justify-center rounded bg-fg text-white text-3xs font-bold leading-none">
-              42
-            </span>
-            <span className="font-semibold tracking-tight text-fg truncate">Creative Command Center</span>
+            <img src="/42-logo.png" alt="42" className="h-6 w-auto object-contain shrink-0" />
+            <span className="k-display text-[15px] text-white truncate">Studio</span>
           </button>
-          <span className="ml-auto shrink-0 font-mono text-2xs text-muted">
+          <span className="ml-auto shrink-0 text-[12px] font-medium text-white/60">
             {TAB_LABELS[tab]}
           </span>
         </div>
@@ -115,7 +114,13 @@ export function Layout({ tab, onTab, children, persistent, persistentTab = "prod
         Skip to content
       </button>
 
-      <main id="main-content" tabIndex={-1} className={hideSidebar ? "outline-none" : "lg:pl-[240px] outline-none"}>
+      {/* The 42 city map, soft, behind every page. Not behind full-bleed
+          tools (the Video Editor), which need a calm surface. */}
+      {!fullBleed && <MapBackdrop />}
+
+      {/* relative (no z-index): paints above the map without creating a
+          stacking context, so modals still stack above the sidebar. */}
+      <main id="main-content" tabIndex={-1} className={hideSidebar ? "relative outline-none" : "relative lg:pl-[256px] outline-none"}>
         <LayoutChromeProvider value={chrome}>
           {/* fullBleed: full main-area width (app-like surfaces e.g. Video
               Editor) with a small gutter; otherwise the centered content column. */}

@@ -24,7 +24,9 @@
 // step of its own (keyboard steps join, as typing does), and undo or redo
 // puts the end back through `end.set` when a step's end is not the one
 // now — so Ctrl+Z right after a trim undoes the trim. Moving the end is not
-// an edit of the draft (it never counts as "edits not generated").
+// an edit of the draft (it never counts as "edits not generated"). A main
+// scene's start (the start grip; `end.startNow` / `end.setStart`) rides the
+// same steps, the same way: a step holds both, a move of either is a step.
 //
 // And the icons seen in Add icon → Suggested while a draft was made (glyph
 // ids): its Generate says so (seen_ideas), and they start again after it.
@@ -43,15 +45,22 @@ interface Step {
   /** The scene's end then (30 fps frames; null: automatic). Absent: the
    *  studio had no end grip. */
   end?: number | null;
+  /** … and its start (frames from the clip's first; null: no trim). Absent:
+   *  no start grip (an intro, an outro). */
+  start?: number | null;
 }
 
-/** The scene's end, as the studio holds it (the stage's queue sends it). */
+/** The scene's end — and a main scene's start — as the studio holds them
+ *  (the stage's queue sends them). */
 export interface EndIo {
   now: () => number | null;
   set: (frame: number | null, nudge: boolean) => void;
+  startNow?: () => number | null;
+  setStart?: (frame: number | null, nudge: boolean) => void;
 }
 
-/** What an undo or redo moved: the draft (or its base), or only the end. */
+/** What an undo or redo moved: the draft (or its base), or only the trim
+ *  (the end or the start). */
 export type Undone = "draft" | "end";
 
 interface Stacks {
@@ -133,9 +142,13 @@ export function useDraftHistory(storageKey: string, baseKey: string, end: EndIo 
       baseRef.current = next.base;
       setDraft(next.draft);
       setStoredBase(next.base);
-      // A step of the end (undo, redo): the end it held goes back.
+      // A step of the end or the start (undo, redo): what it held goes back
+      // (a step moves one of them, so the order never crosses them).
       const io = endRef.current;
       if (io && next.end !== undefined && next.end !== io.now()) io.set(next.end, false);
+      if (io?.setStart && io.startNow && next.start !== undefined && next.start !== io.startNow()) {
+        io.setStart(next.start, false);
+      }
       bump((n) => n + 1);
     },
     [setDraft, setStoredBase],
@@ -144,7 +157,12 @@ export function useDraftHistory(storageKey: string, baseKey: string, end: EndIo 
   const now = (): Step | null => {
     if (!draftRef.current) return null;
     const io = endRef.current;
-    return { draft: draftRef.current, base: baseRef.current, ...(io ? { end: io.now() } : {}) };
+    return {
+      draft: draftRef.current,
+      base: baseRef.current,
+      ...(io ? { end: io.now() } : {}),
+      ...(io?.startNow ? { start: io.startNow() } : {}),
+    };
   };
   /** What moves between two steps: the draft (or its base), or the end. */
   const movedOf = (a: Step, b: Step): Undone =>
@@ -186,6 +204,26 @@ export function useDraftHistory(storageKey: string, baseKey: string, end: EndIo 
       stacks.future = [];
       stacks.last = { tag, at };
       io.set(frame, tag !== null);
+      bump((n) => n + 1);
+      return true;
+    },
+    [stacks],
+  );
+
+  /** A main scene's start moved (null: no trim), as one undo step — as
+   *  setEnd. Returns false when it didn't. */
+  const setStart = useCallback(
+    (frame: number | null, opts?: { coalesce?: string }): boolean => {
+      const io = endRef.current;
+      const cur = now();
+      if (!io?.setStart || !io.startNow || !cur || io.startNow() === frame) return false;
+      const at = Date.now();
+      const tag = opts?.coalesce ?? null;
+      const joins = tag !== null && stacks.last.tag === tag && at - stacks.last.at < COALESCE_MS;
+      if (!joins) stacks.past = [...stacks.past, cur].slice(-STEPS);
+      stacks.future = [];
+      stacks.last = { tag, at };
+      io.setStart(frame, tag !== null);
       bump((n) => n + 1);
       return true;
     },
@@ -254,6 +292,7 @@ export function useDraftHistory(storageKey: string, baseKey: string, end: EndIo 
     base,
     set,
     setEnd,
+    setStart,
     reset,
     forgetBase,
     undo,

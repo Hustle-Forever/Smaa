@@ -26,7 +26,7 @@ BEADS (nothing to build)
 
 LOGO (--logo)
     The reels use the STACKED lockup. The repo only has the horizontal one
-    (backend/data/branding/42_logo_white.png); the stacked PNG was recomposed
+    (backend/app/assets/branding/42_logo_white.png); the stacked PNG was recomposed
     from it during the 2026-09-23 brand research (IoU 0.91 vs the reel's).
     This step only forces its colour to pure #FFFFFF (the recomposition left
     240-254 greys inside the ink) while keeping its alpha.

@@ -13,7 +13,8 @@ import { AiPanel } from "./sidebar/AiPanel";
 type RightTab = "chat" | "props";
 
 export function RightSidebar() {
-  const [tab, setTab] = useState<RightTab>("chat");
+  // Settings first: the editor opens on the clip's properties; Ask AI is one click.
+  const [tab, setTab] = useState<RightTab>("props");
   return (
     <div className="h-full flex flex-col rounded-xl border border-border bg-bg-subtle/40 overflow-hidden">
       <div className="shrink-0 flex border-b border-border">

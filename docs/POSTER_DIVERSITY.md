@@ -92,7 +92,7 @@ render — is selectable** via a toggle in the composer (`image_model`):
 
 | Engine | Model | Logo |
 |---|---|---|
-| **Nano Banana** (default) | `gemini-3-pro-image-preview` | Baked in-render: the white logo PNG is sent as an image part + a logo-firewall instruction. |
+| **Nano Banana** (default) | `gemini-3-pro-image` | Baked in-render: the white logo PNG is sent as an image part + a logo-firewall instruction. |
 | **OpenAI** | `gpt-image-1` (dall·e-3 fallback) | The prompt tells the model **not** to draw a logo and to leave a clean top-right corner; the real white logo is **composited on afterward** (`poster_logo.composite_logo_png`) so it stays crisp and consistently placed. |
 
 `gpt-image-1` is OpenAI's current flagship image model — notably better text rendering

@@ -317,7 +317,7 @@ export function HumanCharacterCreator({ onBack, initialBrief = null }: Props) {
         <button onClick={onBack} className="btn btn-ghost text-sm inline-flex items-center gap-1">
           <ChevronLeftIcon /> Back
         </button>
-        <h1 className="h1 flex-1">Human Character</h1>
+        <h1 className="h1 flex-1">AI-generated character</h1>
         {(attempts.length > 0 || topic) && (
           <button onClick={startOver} className="btn btn-ghost text-xs">
             Start over

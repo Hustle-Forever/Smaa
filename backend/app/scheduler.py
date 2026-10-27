@@ -36,6 +36,7 @@ log = logging.getLogger("archivist.scheduler")
 
 _scheduler: AsyncIOScheduler | None = None
 _job_id = "website_ingest_daily"
+_radar_job_id = "trend_radar_daily"
 
 
 def _cron_fields(expr: str) -> dict[str, str]:
@@ -81,42 +82,65 @@ async def _tick() -> None:
     await registry.start(factory)
 
 
+async def _radar_tick() -> None:
+    """Build the morning Trend Radar (one JSON file, no database)."""
+    from .services import trend_radar
+
+    log.info("[scheduler] building the Trend Radar")
+    await trend_radar.build()
+
+
 async def setup_scheduler() -> None:
-    """Start the scheduler. Idempotent. No-op if AUTO_CRAWL_CRON is empty."""
+    """Start the scheduler. Idempotent. Arms the crawl when AUTO_CRAWL_CRON is set
+    and the daily Trend Radar unless TREND_RADAR_HOUR is -1."""
     global _scheduler
 
     if _scheduler is not None:
         return
 
     cron = (config.auto_crawl_cron or "").strip()
-    if not cron:
-        log.info("Scheduler disabled (AUTO_CRAWL_CRON is empty)")
-        return
+    trigger = None
+    if cron:
+        try:
+            trigger = CronTrigger(timezone=config.scheduler_timezone, **_cron_fields(cron))
+        except Exception as e:
+            log.error("Invalid AUTO_CRAWL_CRON=%r: crawl not scheduled: %s", cron, e)
+    else:
+        log.info("Daily crawl disabled (AUTO_CRAWL_CRON is empty)")
 
-    try:
-        trigger = CronTrigger(timezone=config.scheduler_timezone, **_cron_fields(cron))
-    except Exception as e:
-        log.error("Invalid AUTO_CRAWL_CRON=%r — scheduler not started: %s", cron, e)
+    radar_on = 0 <= config.trend_radar_hour <= 23
+    if trigger is None and not radar_on:
         return
 
     sched = AsyncIOScheduler(timezone=config.scheduler_timezone)
-    sched.add_job(
-        _tick,
-        trigger=trigger,
-        id=_job_id,
-        misfire_grace_time=3600,  # tolerate a 1h delay (e.g. machine asleep)
-        coalesce=True,             # collapse missed runs into one
-        max_instances=1,           # never overlap
-    )
+    if trigger is not None:
+        sched.add_job(
+            _tick,
+            trigger=trigger,
+            id=_job_id,
+            misfire_grace_time=3600,  # tolerate a 1h delay (e.g. machine asleep)
+            coalesce=True,             # collapse missed runs into one
+            max_instances=1,           # never overlap
+        )
+    if radar_on:
+        # Gulf time on purpose, whatever SCHEDULER_TIMEZONE says: the radar is
+        # for the team's morning in Abu Dhabi.
+        sched.add_job(
+            _radar_tick,
+            trigger=CronTrigger(hour=config.trend_radar_hour, minute=0, timezone="Asia/Dubai"),
+            id=_radar_job_id,
+            misfire_grace_time=6 * 3600,
+            coalesce=True,
+            max_instances=1,
+        )
     sched.start()
     _scheduler = sched
 
-    job = sched.get_job(_job_id)
-    next_run = job.next_run_time if job else None
-    log.info(
-        "Scheduler armed: cron=%r tz=%s next_run=%s",
-        cron, config.scheduler_timezone, next_run,
-    )
+    for jid in (_job_id, _radar_job_id):
+        job = sched.get_job(jid)
+        if job:
+            log.info("Scheduler armed: job=%s tz=%s next_run=%s",
+                     jid, job.trigger.timezone, job.next_run_time)
 
 
 async def shutdown_scheduler() -> None:

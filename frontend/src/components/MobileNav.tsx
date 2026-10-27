@@ -76,19 +76,17 @@ export function MobileNav({
         tabIndex={-1}
         onKeyDown={trapTab}
         onClick={(e) => e.stopPropagation()}
-        className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] flex flex-col bg-bg-subtle border-r border-border shadow-lift outline-none"
+        className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] flex flex-col bg-k-rail text-white border-r border-white/[0.06] shadow-lift outline-none"
       >
-        <div className="shrink-0 flex items-center gap-2.5 px-5 py-4 border-b border-border">
-          <span className="inline-flex w-7 h-7 shrink-0 items-center justify-center rounded bg-fg p-1.5">
-            {/* The real 42 mark. Same asset as the desktop rail. */}
-            <img src="/42-logo.png" alt="" className="h-full w-full object-contain" />
-          </span>
+        <div className="shrink-0 flex items-center gap-3 px-5 py-4 border-b border-white/[0.08]">
+          {/* The real 42 mark. Same asset as the desktop rail. */}
+          <img src="/42-logo.png" alt="42" className="h-8 w-auto object-contain shrink-0" />
           <span className="min-w-0 leading-tight flex-1">
-            <span className="block text-[13px] font-semibold tracking-tight text-fg">
-              42 Studio
+            <span className="block k-display text-[16px] text-white">
+              Studio
             </span>
-            <span className="block truncate text-[11.5px] font-semibold tracking-wide text-fg/70 mt-0.5">
-              Creative Command Center
+            <span className="block truncate text-[11px] font-medium tracking-[0.06em] uppercase text-white/55 mt-0.5">
+              Abu Dhabi
             </span>
           </span>
           <button
@@ -96,7 +94,7 @@ export function MobileNav({
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="w-8 h-8 shrink-0 rounded-full bg-bg-muted hover:bg-border text-fg flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="w-9 h-9 shrink-0 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-white flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-k-cyan/70"
           >
             <X className="w-4 h-4" strokeWidth={2.5} aria-hidden />
           </button>

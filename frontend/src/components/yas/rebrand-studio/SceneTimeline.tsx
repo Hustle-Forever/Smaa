@@ -19,7 +19,8 @@
 //             word) and, at its end, `aside` (Snap to words).
 //
 // The playhead, the footage's cuts, the end's line and the hatching after it
-// run through the ruler and every lane, the icons' too.
+// (and a start's, before it) run through the ruler and every lane, the
+// icons' too.
 //
 //   end       `grip` (every view of a scene, once the server has it): where
 //             the scene ends: a dark grip on the ruler with a line through
@@ -31,6 +32,15 @@
 //             end: an amber tick marks the automatic cut, amber hatching the
 //             frames after it that jump to another shot (draggable into),
 //             and the lanes are drawn inside the scene's end.
+//   start     `startGrip` (a main scene's, with the end grip): where the
+//             scene starts in the reel — the same grip on the ruler's left,
+//             grey hatching before it (cut). Drag it (it snaps to the clip's
+//             first frame, a part's start, a word's onset or where speech
+//             starts, within 8 px), double-click it for no trim; ←/→ one
+//             frame (Shift 10), Home, 0 or Backspace no trim, End the
+//             latest. The two grips keep a second between them. The ruler
+//             and the lanes stay in the clip's own seconds (only the reel
+//             skips the start).
 //
 // Keyboard on the ruler: ←/→ 0.1 s (Shift: 1 s), Home / End.
 //
@@ -46,7 +56,20 @@ import {
   type ReactNode,
 } from "react";
 
-import { clampEnd, dropEnd, endBubble, endRange, FPS, keyEnd, snapEnd } from "../../../lib/rebrandEnd";
+import {
+  clampEnd,
+  clampStart,
+  dropEnd,
+  dropStart,
+  endBubble,
+  endRange,
+  endReset,
+  FPS,
+  keyEnd,
+  keyStart,
+  snapEnd,
+  startRange,
+} from "../../../lib/rebrandEnd";
 import { scrollToShow, TRACK_PX } from "../../../lib/rebrandTracks";
 import { clock, COPY } from "./studioCopy";
 
@@ -78,6 +101,126 @@ export interface EndGrip {
   onDrag?: (frame: number | null) => void;
 }
 
+/** A main scene's start on the timeline (30 fps frames from the clip's
+ *  first): the reel skips what is before it. */
+export interface StartGrip {
+  /** Where the scene starts now (0: the clip's first frame). */
+  frame: number;
+  /** Set by hand (null: no trim). */
+  user: number | null;
+  /** Where a drag snaps. */
+  snaps: readonly number[];
+  /** A new start (null: no trim); `nudge`: a key step (steps join). */
+  onStart: (frame: number | null, nudge: boolean) => void;
+}
+
+/** One grip on the ruler, as useGrip handles it (the end's, the start's). */
+interface GripIo {
+  /** Where it is now (frames). */
+  frame: number;
+  /** Set by hand (null: its default). */
+  user: number | null;
+  snaps: readonly number[];
+  /** A dragged frame, in range. */
+  clamp: (frame: number) => number;
+  /** What a drop stores. */
+  drop: (frame: number) => number | null;
+  /** What a double-click stores (the grip's default). */
+  reset: number | null;
+  /** Its keys: what one stores, or undefined (not one of its keys). */
+  key: (key: string, shift: boolean) => { to: number | null; nudge: boolean } | undefined;
+  set: (frame: number | null, nudge: boolean) => void;
+  onDrag?: (frame: number | null) => void;
+}
+
+/** A grip's pointer and keys: a drag (snapping within 8 px; `live` while it
+ *  moves, for the bubble), a click (a second one soon after is a
+ *  double-click: `reset`) and its keys (the bubble shows a moment). */
+function useGrip(io: GripIo | null, pxPerFrame: number) {
+  // `live`: where a drag has it (the bubble shows it); `bubble`: a key just
+  // moved it (the bubble shows a moment).
+  const [live, setLive] = useState<number | null>(null);
+  const [bubble, setBubble] = useState(false);
+  const bubbleTimer = useRef<number | undefined>();
+  useEffect(() => () => window.clearTimeout(bubbleTimer.current), []);
+  const drag = useRef<{ x: number; from: number; moved: boolean; id: number } | null>(null);
+  // The last click on the grip (a press let go where it was): a second one
+  // soon after is a double-click. Counted here, not from the browser's own
+  // dblclick, which a captured pointer doesn't always get.
+  const lastClick = useRef(0);
+  const down = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!io || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, from: io.frame, moved: false, id: e.pointerId };
+    e.currentTarget.focus({ preventScroll: true });
+  };
+  const move = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!io || !d || d.id !== e.pointerId) return;
+    if (!d.moved && Math.abs(e.clientX - d.x) < DRAG_PX) return;
+    d.moved = true;
+    const raw = io.clamp(d.from + (e.clientX - d.x) / Math.max(1e-6, pxPerFrame));
+    const at = snapEnd(raw, io.snaps, pxPerFrame);
+    setLive(at);
+    io.onDrag?.(at);
+  };
+  const up = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!io || !d || d.id !== e.pointerId) return;
+    drag.current = null;
+    const at = live;
+    setLive(null);
+    io.onDrag?.(null);
+    // A click is not a drag: nothing moves, but a double-click is the
+    // grip's default.
+    if (!d.moved || at == null) {
+      const now = Date.now();
+      if (now - lastClick.current < DOUBLE_MS) {
+        lastClick.current = 0;
+        if (io.user !== io.reset) io.set(io.reset, false);
+      } else {
+        lastClick.current = now;
+      }
+      return;
+    }
+    lastClick.current = 0;
+    const to = io.drop(at);
+    if (to !== io.user) io.set(to, false);
+  };
+  const cancel = () => {
+    if (!drag.current) return;
+    drag.current = null;
+    setLive(null);
+    io?.onDrag?.(null);
+  };
+  const keyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!io) return;
+    const k = io.key(e.key, e.shiftKey);
+    if (!k) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (k.to !== io.user) io.set(k.to, k.nudge);
+    setBubble(true);
+    window.clearTimeout(bubbleTimer.current);
+    bubbleTimer.current = window.setTimeout(() => setBubble(false), BUBBLE_MS);
+  };
+  return {
+    /** Where it shows: the drag's, else where it is. */
+    at: live ?? io?.frame ?? 0,
+    bubble: live != null || bubble,
+    handlers: {
+      onPointerDown: down,
+      onPointerMove: move,
+      onPointerUp: up,
+      onPointerCancel: cancel,
+      onLostPointerCapture: cancel,
+      onKeyDown: keyDown,
+    },
+  };
+}
+
 export function SceneTimeline({
   duration,
   t,
@@ -86,6 +229,7 @@ export function SceneTimeline({
   cuts = [],
   children,
   grip = null,
+  startGrip = null,
   status = null,
   aside = null,
   focus = null,
@@ -105,6 +249,9 @@ export function SceneTimeline({
   /** The scene's end: the ruler runs to the clip's real end, the lanes
    *  inside `duration` (the scene's seconds up to its end). */
   grip?: EndGrip | null;
+  /** A main scene's start (shown with `grip` only): the reel skips the
+   *  clip before it. */
+  startGrip?: StartGrip | null;
   /** The status line's words (it keeps its height when there are none). */
   status?: ReactNode;
   /** At the status line's end (Snap to words). */
@@ -185,96 +332,78 @@ export function SceneTimeline({
     }
   };
 
-  // --- the end grip -----------------------------------------------------------------
-  // `live`: where a drag has it (the bubble shows it); `bubble`: a key just
-  // moved it (the bubble shows a moment).
-  const [live, setLive] = useState<number | null>(null);
-  const [bubble, setBubble] = useState(false);
-  const bubbleTimer = useRef<number | undefined>();
-  useEffect(() => () => window.clearTimeout(bubbleTimer.current), []);
-  const drag = useRef<{ x: number; from: number; moved: boolean; id: number } | null>(null);
-  // The last click on the grip (a press let go where it was): a second one
-  // soon after is a double-click. Counted here, not from the browser's own
-  // dblclick, which a captured pointer doesn't always get.
-  const lastClick = useRef(0);
-  const facts = grip ? { auto: grip.auto, extent: grip.extent } : null;
+  // --- the end grip, and a main scene's start grip --------------------------------
+  // Each keeps a second from the other: the end's range starts a second
+  // after the start, the start's ends a second before the end.
+  const starts = !!grip && !!startGrip;
+  const facts = grip ? { auto: grip.auto, extent: grip.extent, start: startGrip?.frame ?? 0 } : null;
   const pxPerFrame = width / Math.max(1, total * FPS);
-  const gripDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!grip || e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, from: grip.frame, moved: false, id: e.pointerId };
-    e.currentTarget.focus({ preventScroll: true });
-  };
-  const gripMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    if (!grip || !facts || !d || d.id !== e.pointerId) return;
-    if (!d.moved && Math.abs(e.clientX - d.x) < DRAG_PX) return;
-    d.moved = true;
-    const raw = clampEnd(d.from + (e.clientX - d.x) / Math.max(1e-6, pxPerFrame), facts);
-    const at = snapEnd(raw, grip.snaps, pxPerFrame);
-    setLive(at);
-    grip.onDrag?.(at);
-  };
-  const gripUp = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    if (!grip || !facts || !d || d.id !== e.pointerId) return;
-    drag.current = null;
-    const at = live;
-    setLive(null);
-    grip.onDrag?.(null);
-    // A click is not a drag: nothing moves, but a double-click is automatic.
-    if (!d.moved || at == null) {
-      const now = Date.now();
-      if (now - lastClick.current < DOUBLE_MS) {
-        lastClick.current = 0;
-        if (grip.user != null) grip.onEnd(null, false);
-      } else {
-        lastClick.current = now;
-      }
-      return;
-    }
-    lastClick.current = 0;
-    const end = dropEnd(at, facts);
-    if (end !== grip.user) grip.onEnd(end, false);
-  };
-  const gripCancel = () => {
-    if (!drag.current) return;
-    drag.current = null;
-    setLive(null);
-    grip?.onDrag?.(null);
-  };
-  const gripKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!grip || !facts) return;
-    const k = keyEnd(e.key, e.shiftKey, grip.user, facts);
-    if (!k) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (k.end !== grip.user) grip.onEnd(k.end, k.nudge);
-    setBubble(true);
-    window.clearTimeout(bubbleTimer.current);
-    bubbleTimer.current = window.setTimeout(() => setBubble(false), BUBBLE_MS);
-  };
-  const gripAt = live ?? grip?.frame ?? 0;
+  const endGrip = useGrip(
+    grip && facts
+      ? {
+          frame: grip.frame,
+          user: grip.user,
+          snaps: grip.snaps,
+          clamp: (f) => clampEnd(f, facts),
+          drop: (f) => dropEnd(f, facts),
+          // Automatic (or, when a start leaves it too close, the nearest
+          // end that fits).
+          reset: endReset(facts),
+          key: (key, shift) => {
+            const k = keyEnd(key, shift, grip.user, facts);
+            return k && { to: k.end, nudge: k.nudge };
+          },
+          set: grip.onEnd,
+          onDrag: grip.onDrag,
+        }
+      : null,
+    pxPerFrame,
+  );
+  const startG = useGrip(
+    grip && startGrip
+      ? {
+          frame: startGrip.frame,
+          user: startGrip.user,
+          snaps: startGrip.snaps,
+          clamp: (f) => clampStart(f, grip.frame),
+          drop: (f) => dropStart(f, grip.frame),
+          reset: null,
+          key: (key, shift) => {
+            const k = keyStart(key, shift, startGrip.user, grip.frame);
+            return k && { to: k.start, nudge: k.nudge };
+          },
+          set: startGrip.onStart,
+        }
+      : null,
+    pxPerFrame,
+  );
+  const gripAt = endGrip.at;
   const gripPct = pct(gripAt / FPS);
   const range = facts ? endRange(facts) : null;
+  const startAt = starts ? startG.at : 0;
+  const startPct = pct(startAt / FPS);
+  const startMax = grip && startGrip ? startRange(grip.frame).max : 0;
   // The frames past the automatic cut (a Veo tail flash): amber.
   const flash = grip && grip.auto != null && grip.extent > grip.auto ? { from: grip.auto / FPS, to: grip.extent / FPS } : null;
   // The bubble sits beside the grip, on the side with room.
   const bubbleLeft = gripAt / FPS / total > 0.8;
+  const startBubbleLeft = startAt / FPS / total > 0.8;
   const laneWidth = grip ? (width * lanes) / total : width;
+  const hatch =
+    "pointer-events-none absolute inset-y-0 bg-[repeating-linear-gradient(135deg,rgba(113,113,122,0.28)_0_4px,rgba(113,113,122,0.12)_4px_8px)]";
   // After the end (cut): its hatching and its line, once in the ruler and
-  // once through the lanes under it.
+  // once through the lanes under it — and before a start the same.
   const endMarks =
     grip && range ? (
       <>
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 bg-[repeating-linear-gradient(135deg,rgba(113,113,122,0.28)_0_4px,rgba(113,113,122,0.12)_4px_8px)]"
-          style={{ left: gripPct }}
-        />
+        <span aria-hidden className={`${hatch} right-0`} style={{ left: gripPct }} />
         <span aria-hidden className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-fg/60" style={{ left: gripPct }} />
+        {starts && startAt > 0 && (
+          <>
+            <span aria-hidden data-start-cut className={`${hatch} left-0`} style={{ width: startPct }} />
+            <span aria-hidden className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-fg/60" style={{ left: startPct }} />
+          </>
+        )}
       </>
     ) : null;
 
@@ -352,6 +481,37 @@ export function SceneTimeline({
             <span aria-hidden className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-accent" style={{ left: pct(t) }}>
               <span className="absolute -top-px left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-accent" />
             </span>
+            {grip && range && starts && (
+              <>
+                {/* the start: the end's grip on the ruler's left (at the
+                    clip's first frame it sits whole inside the ruler) */}
+                <div
+                  role="slider"
+                  tabIndex={0}
+                  data-start-grip
+                  aria-label={COPY.time.startLabel}
+                  aria-valuemin={0}
+                  aria-valuemax={startMax / FPS}
+                  aria-valuenow={Math.round((startAt / FPS) * 100) / 100}
+                  aria-valuetext={endBubble(startAt)}
+                  title={COPY.time.startTitle}
+                  {...startG.handlers}
+                  className="absolute top-px z-10 h-[17px] w-2.5 -translate-x-1/2 cursor-ew-resize touch-none rounded-sm bg-fg shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  style={{ left: `max(${startPct}, 5px)` }}
+                />
+                {startG.bubble && (
+                  <span
+                    aria-hidden
+                    className={`pointer-events-none absolute top-px z-10 whitespace-nowrap rounded bg-fg px-1.5 py-px font-mono text-[10px] tabular-nums text-bg ${
+                      startBubbleLeft ? "-translate-x-[calc(100%+10px)]" : "translate-x-[10px]"
+                    }`}
+                    style={{ left: startPct }}
+                  >
+                    {endBubble(startAt)}
+                  </span>
+                )}
+              </>
+            )}
             {grip && range && (
               <>
                 <div
@@ -364,16 +524,11 @@ export function SceneTimeline({
                   aria-valuenow={Math.round((gripAt / FPS) * 100) / 100}
                   aria-valuetext={endBubble(gripAt)}
                   title={COPY.time.endTitle}
-                  onPointerDown={gripDown}
-                  onPointerMove={gripMove}
-                  onPointerUp={gripUp}
-                  onPointerCancel={gripCancel}
-                  onLostPointerCapture={gripCancel}
-                  onKeyDown={gripKey}
+                  {...endGrip.handlers}
                   className="absolute top-px z-10 h-[17px] w-2.5 -translate-x-1/2 cursor-ew-resize touch-none rounded-sm bg-fg shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   style={{ left: gripPct }}
                 />
-                {(live != null || bubble) && (
+                {endGrip.bubble && (
                   <span
                     aria-hidden
                     className={`pointer-events-none absolute top-px z-10 whitespace-nowrap rounded bg-fg px-1.5 py-px font-mono text-[10px] tabular-nums text-bg ${
@@ -391,7 +546,7 @@ export function SceneTimeline({
             {width > 0 && children?.(laneWidth)}
           </div>
           {/* through every lane, the icons' too: the footage's cuts, the
-              end, the playhead */}
+              end (and a start), the playhead */}
           {cuts.map((c, i) => (
             <span
               key={`cl${i}`}

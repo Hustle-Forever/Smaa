@@ -15,12 +15,15 @@
  * and its "Finish & continue →" (export) advances to Finalization, like the rest.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Link2 } from "lucide-react";
+
 
 import type { Tab } from "../../../App";
 import { PRODUCER_BRIEF_EVENT, clearProducerBrief, peekProducerBrief, type ProducerBrief } from "../../../lib/producerBrief";
 import { PRODUCER_HUB_HASH, producerResumeHash, producerToolHash, replaceHash } from "../../../lib/producerHash";
 import { useCopyLink } from "../../../lib/useCopyLink";
+import { useStudioCanvas } from "../../../lib/useStudioCanvas";
+import { ToolIllustration } from "./ToolIllustration";
 import { roadmapApi } from "./api";
 import { AnimationCreator } from "../AnimationCreator";
 import { BrollCreator } from "../BrollCreator";
@@ -50,13 +53,14 @@ import {
 // "B-roll"). That told a reader who already knew the system what it does, and
 // told everybody else nothing. A card here answers one question, "what comes
 // out of this?", because the reader is choosing, not operating.
+// `output` is the plain answer to "what do I get?", shown as a small tag.
 const HUB_CARDS = [
-  { key: "poster", label: "Poster", color: "bg-blue-500/80", desc: "A designed picture. No people in it." },
-  { key: "animation", label: "Animation", color: "bg-orange-500/80", desc: "A poster that moves, a few seconds long." },
-  { key: "poster_human", label: "Poster + Human", color: "bg-success/80", desc: "A designed picture with people in it." },
-  { key: "human_character", label: "Human Character", color: "bg-rose-500/80", desc: "Make a person you can use again in videos." },
-  { key: "talking_head_v2", label: "Human Element Video", color: "bg-fuchsia-500/80", desc: "A short video of someone talking." },
-  { key: "video_editor", label: "Video Editor", color: "bg-cyan-500/80", desc: "Cut and join clips into one video." },
+  { key: "poster", label: "Poster", output: "Image", desc: "A designed picture. No people in it." },
+  { key: "animation", label: "Animation", output: "Short video", desc: "A poster that moves, a few seconds long." },
+  { key: "poster_human", label: "Poster + Human", output: "Image", desc: "A designed picture with people in it." },
+  { key: "human_character", label: "AI-generated character", output: "Saved to Assets", desc: "Make a person you can use again in videos." },
+  { key: "talking_head_v2", label: "Human Element Video", output: "Video", desc: "A short video of someone talking." },
+  { key: "video_editor", label: "Video Editor", output: "Video", desc: "Cut and join clips into one video." },
 ] as const;
 
 // The hub splits into "create new content" tools (the centered grid) and the
@@ -71,13 +75,13 @@ const GENERAL_VIDEO_SUBCARDS = [
   {
     key: "general_video",
     label: "General AI Video",
-    color: "bg-teal-500/80",
+    output: "Video",
     desc: "Describe a video and we make it for you.",
   },
   {
     key: "broll",
     label: "B-roll",
-    color: "bg-warning/80",
+    output: "Video",
     desc: "Drop in your own clips, we join them up.",
   },
 ] as const;
@@ -103,6 +107,13 @@ const TOOL_DRAFT_KEYS: Partial<Record<RoadmapTool, string[]>> = {
  *  it's never routed through here. Grammar lives in lib/producerHash. */
 function writeToolHash(tool: RoadmapTool | null) {
   replaceHash(tool ? producerToolHash(tool) : PRODUCER_HUB_HASH);
+}
+
+/** Whether Ideation is the visible tab (the page stays mounted while hidden).
+ *  App routes the legacy #yas-producer alias here too. */
+function isProducerHash(): boolean {
+  const h = window.location.hash.replace(/^#/, "").split("/")[0];
+  return h === "producer" || h === "yas-producer";
 }
 
 /** Map a roadmap tool key to its Library type for building a resume hash. It's
@@ -174,6 +185,17 @@ export function ProducerRoadmap({
   // of the main tool grid.
   const [subChooser, setSubChooser] = useState(false);
   const copyLink = useCopyLink();
+
+  // The grid canvas, only while Ideation is the visible tab. This component
+  // stays mounted (hidden) on other tabs so generations survive; tab switches
+  // go through location.hash, so the hash says whether we are on screen.
+  const [onScreen, setOnScreen] = useState(() => isProducerHash());
+  useEffect(() => {
+    const onHash = () => setOnScreen(isProducerHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  useStudioCanvas(onScreen);
 
   const stepIndex = (s: GlobalStep) => GLOBAL_STEP_ORDER.indexOf(s);
   const bump = (i: number) => setMaxReached((m) => Math.max(m, i));
@@ -472,105 +494,124 @@ export function ProducerRoadmap({
 
   return (
     <div ref={rootRef} className="space-y-5">
-      {/* Global roadmap rail (frozen on "Editor" while a creator is open). */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <p className="eyebrow shrink-0">Roadmap</p>
-        <GlobalStepper
-          activeStep={step}
-          maxReachedIndex={maxReached}
-          editorLabel={tool ? `Editing: ${ROADMAP_TOOL_LABELS[tool]}` : undefined}
-          onNavigate={goTo}
-        />
+      {/* Global roadmap rail (frozen on "Editing" while a creator is open). */}
+      <div className="glass !rounded-none flex items-center gap-2 p-1.5 pr-2">
+        <nav aria-label="Project steps" className="relative z-[2] flex-1 min-w-0 overflow-x-auto">
+          <GlobalStepper
+            activeStep={step}
+            maxReachedIndex={maxReached}
+            editorLabel={tool ? `Editing: ${ROADMAP_TOOL_LABELS[tool]}` : undefined}
+            onNavigate={goTo}
+          />
+        </nav>
         {/* Copy a shareable link to this project (only while one is open). */}
         {tool && (
           <button
             onClick={() => copyLink(window.location.href, "Reopens this project where you left off.")}
             title="Copy a shareable link to this project"
             aria-label="Copy link to this project"
-            className="ml-auto inline-flex items-center gap-1.5 text-2xs font-medium text-muted hover:text-fg px-2 py-1 rounded-lg border border-border hover:border-border-strong transition"
+            className="relative z-[2] shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium text-fg/70 hover:text-fg bg-k-surface/70 hover:bg-k-surface ring-1 ring-fg/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
           >
-            <Link2 className="w-3 h-3" />
-            Copy link
+            <Link2 className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden />
+            <span className="hidden sm:inline">Copy link</span>
           </button>
         )}
       </div>
 
       {step === "producer" && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          <h1 className="h1 text-center">
-            {subChooser ? "General video" : "What do you want to create?"}
-          </h1>
+        <div className="space-y-6 animate-pageEnter">
+          <header className="space-y-1.5 pt-2">
+            <p className="text-[13px] font-medium text-fg/55">{subChooser ? "Ideation · General video" : "Ideation"}</p>
+            <h1 className="k-display text-[32px] md:text-[42px] text-fg text-balance">
+              <span className="k-code" aria-hidden>&gt; </span>
+              {subChooser ? "Which kind of video?" : "What do you want to make?"}
+            </h1>
+            <p className="text-[15px] text-fg/60 max-w-2xl text-pretty">
+              {subChooser
+                ? "Both make a short video you can caption, schedule and post."
+                : "Pick one. We guide you step by step, from the first idea to posting it on Instagram."}
+            </p>
+          </header>
 
           {subChooser ? (
             <div className="space-y-4">
-              <button onClick={() => setSubChooser(false)} className="btn btn-ghost text-sm">
-                ← All tools
+              <button
+                onClick={() => setSubChooser(false)}
+                className="btn glass glass-hover !rounded-none h-9 px-3.5 text-[13.5px] text-fg"
+              >
+                <ArrowLeft className="w-4 h-4 relative z-[2]" strokeWidth={1.8} aria-hidden />
+                <span className="relative z-[2]">All tools</span>
               </button>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {GENERAL_VIDEO_SUBCARDS.map((m) => (
-                  <button
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+                {GENERAL_VIDEO_SUBCARDS.map((m, i) => (
+                  <ToolCard
                     key={m.key}
+                    kind={m.key}
+                    label={m.label}
+                    desc={m.desc}
+                    output={m.output}
+                    delay={i * 60}
                     onClick={() => choose(m.key)}
-                    className="card card-hover text-left p-6 flex flex-col gap-3 group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${m.color}`} />
-                      <span className="font-semibold text-fg text-base">{m.label}</span>
-                    </div>
-                    <p className="text-sm text-muted leading-relaxed">{m.desc}</p>
-                  </button>
+                  />
                 ))}
               </div>
             </div>
           ) : (
             <>
               {/* Create-new-content tools */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {CREATE_CARDS.map((m) => (
-                  <button
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {CREATE_CARDS.map((m, i) => (
+                  <ToolCard
                     key={m.key}
+                    kind={m.key}
+                    label={m.label}
+                    desc={m.desc}
+                    output={m.output}
+                    delay={i * 50}
                     onClick={() => choose(m.key)}
-                    className="card card-hover text-left p-6 flex flex-col gap-3 group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${m.color}`} />
-                      <span className="font-semibold text-fg text-base">{m.label}</span>
-                    </div>
-                    <p className="text-sm text-muted leading-relaxed">{m.desc}</p>
-                  </button>
+                  />
                 ))}
-                {/* General video — a category that opens a two-tool sub-chooser. */}
-                <button
+                {/* General video: a category that opens a two-tool sub-chooser. */}
+                <ToolCard
+                  kind="general_video_category"
+                  label="General video"
+                  desc="A short video, made for you or built from your own clips."
+                  output="2 ways"
+                  delay={CREATE_CARDS.length * 50}
                   onClick={() => setSubChooser(true)}
-                  className="card card-hover text-left p-6 flex flex-col gap-3 group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-teal-500/80" />
-                    <span className="font-semibold text-fg text-base">General video</span>
-                  </div>
-                  <p className="text-sm text-muted leading-relaxed">
-                    A short video, made for you or built from your own clips.
-                  </p>
-                </button>
+                />
               </div>
 
-              {/* Video Editor — its own full-width card under the grid (edit
+              {/* Video Editor: its own full-width card under the grid (edit
                   existing footage, a distinct action from the create tools). */}
-              <button
-                onClick={() => choose(VIDEO_EDITOR_CARD.key)}
-                className="card card-hover w-full text-left p-6 flex items-center gap-4 group"
-              >
-                <span className="w-11 h-11 rounded-xl bg-cyan-500/15 flex items-center justify-center shrink-0">
-                  <span className={`w-3.5 h-3.5 rounded-full ${VIDEO_EDITOR_CARD.color}`} />
-                </span>
-                <div className="min-w-0">
-                  <div className="font-semibold text-fg text-base">{VIDEO_EDITOR_CARD.label}</div>
-                  <p className="text-sm text-muted leading-relaxed">{VIDEO_EDITOR_CARD.desc}</p>
-                </div>
-                <span className="ml-auto text-lg text-muted group-hover:text-fg transition-colors shrink-0">
-                  →
-                </span>
-              </button>
+              <div className="space-y-2">
+                <p className="text-[13px] font-medium text-fg/55">Already have footage?</p>
+                <button
+                  onClick={() => choose(VIDEO_EDITOR_CARD.key)}
+                  className="glass glass-hover w-full text-left p-1.5 flex flex-col sm:flex-row sm:items-stretch gap-1.5 group animate-reveal focus:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
+                  style={{ animationDelay: "320ms" }}
+                >
+                  <span className="illo-panel relative z-[2] block sm:w-[300px] shrink-0 aspect-[16/9] sm:aspect-auto sm:h-[150px] rounded-[2px] overflow-hidden">
+                    <span className="block w-full h-full p-3 transition-transform duration-500 group-hover:scale-[1.03]">
+                      <ToolIllustration kind="video_editor" />
+                    </span>
+                  </span>
+                  <span className="relative z-[2] flex-1 min-w-0 flex items-center gap-4 px-4 py-3">
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="flex items-center gap-2">
+                        <span className="text-[17px] font-semibold tracking-[-0.01em] text-fg">{VIDEO_EDITOR_CARD.label}</span>
+                        <OutputTag text={VIDEO_EDITOR_CARD.output} />
+                      </span>
+                      <span className="block text-[14px] text-fg/60">
+                        {VIDEO_EDITOR_CARD.desc} Add music, text and your brand touches on a timeline.
+                      </span>
+                    </span>
+                    <span className="icon-well w-10 h-10 !rounded-none shrink-0 transition-transform duration-200 group-hover:translate-x-0.5">
+                      <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden />
+                    </span>
+                  </span>
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -581,7 +622,7 @@ export function ProducerRoadmap({
           button, or stepping to Preview — never resets an in-progress
           generation. Cleared only by a full reset (Approval → Done). */}
       {visited.has("poster") && (
-        <div hidden={!(tool === "poster" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "poster" && step === "editor")}>
           <PosterCreator
             key={`poster-${projectNonce}`}
             onBack={backToHub}
@@ -595,7 +636,7 @@ export function ProducerRoadmap({
         </div>
       )}
       {visited.has("animation") && (
-        <div hidden={!(tool === "animation" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "animation" && step === "editor")}>
           <AnimationCreator
             key={`animation-${projectNonce}`}
             onBack={backToHub}
@@ -608,7 +649,7 @@ export function ProducerRoadmap({
         </div>
       )}
       {visited.has("poster_human") && (
-        <div hidden={!(tool === "poster_human" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "poster_human" && step === "editor")}>
           <PosterHumanCreator
             key={`poster_human-${projectNonce}`}
             onBack={backToHub}
@@ -623,7 +664,7 @@ export function ProducerRoadmap({
       {visited.has("human_character") && (
         // Save-to-Assets utility tool — no Preview/Instagram handoff (no
         // onContinue), so it never advances past Editing. Back returns to the hub.
-        <div hidden={!(tool === "human_character" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "human_character" && step === "editor")}>
           <HumanCharacterCreator
             key={`human_character-${projectNonce}`}
             onBack={backToHub}
@@ -632,7 +673,7 @@ export function ProducerRoadmap({
         </div>
       )}
       {visited.has("talking_head_v2") && (
-        <div hidden={!(tool === "talking_head_v2" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "talking_head_v2" && step === "editor")}>
           <TalkingHeadV2Creator
             key={`talking_head_v2-${projectNonce}`}
             onBack={backToHub}
@@ -670,7 +711,7 @@ export function ProducerRoadmap({
         </div>
       )}
       {visited.has("general_video") && (
-        <div hidden={!(tool === "general_video" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "general_video" && step === "editor")}>
           <GeneralVideoCreator
             key={`general_video-${projectNonce}`}
             onBack={backToHub}
@@ -683,7 +724,7 @@ export function ProducerRoadmap({
         </div>
       )}
       {visited.has("broll") && (
-        <div hidden={!(tool === "broll" && step === "editor")}>
+        <div className="studio-ui" hidden={!(tool === "broll" && step === "editor")}>
           <BrollCreator
             key={`broll-${projectNonce}`}
             onBack={backToHub}
@@ -698,32 +739,90 @@ export function ProducerRoadmap({
       )}
 
       {step === "preview" && asset && (
-        <PreviewStep
-          asset={asset}
-          caption={draftCaption}
-          onCaptionChange={setDraftCaption}
-          onBack={() => goTo("editor")}
-          onConfirm={onCaptionConfirmed}
-        />
+        <div className="studio-ui">
+          <PreviewStep
+            asset={asset}
+            caption={draftCaption}
+            onCaptionChange={setDraftCaption}
+            onBack={() => goTo("editor")}
+            onConfirm={onCaptionConfirmed}
+          />
+        </div>
       )}
 
       {step === "calendar" && asset && (
-        <CalendarStep
-          asset={asset}
-          onBack={() => goTo("preview")}
-          onScheduled={onScheduled}
-          onPostNow={onPostNow}
-        />
+        <div className="studio-ui">
+          <CalendarStep
+            asset={asset}
+            onBack={() => goTo("preview")}
+            onScheduled={onScheduled}
+            onPostNow={onPostNow}
+          />
+        </div>
       )}
 
       {step === "approval" && asset && (
-        <ApprovalStep
-          asset={asset}
-          onBack={() => goTo("calendar")}
-          onDone={finishAndReset}
-          autoApprove={autoApprove}
-        />
+        <div className="studio-ui">
+          <ApprovalStep
+            asset={asset}
+            onBack={() => goTo("calendar")}
+            onDone={finishAndReset}
+            autoApprove={autoApprove}
+          />
+        </div>
       )}
     </div>
+  );
+}
+
+/* ---------- hub cards ---------- */
+
+function OutputTag({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center h-6 px-2 bg-fg/[0.05] ring-1 ring-fg/15 text-[11.5px] font-semibold text-fg/80 whitespace-nowrap">
+      {text}
+    </span>
+  );
+}
+
+function ToolCard({
+  kind,
+  label,
+  desc,
+  output,
+  delay = 0,
+  onClick,
+}: {
+  kind: Parameters<typeof ToolIllustration>[0]["kind"];
+  label: string;
+  desc: string;
+  output: string;
+  delay?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ animationDelay: `${delay}ms` }}
+      className="glass glass-hover text-left p-1.5 flex flex-col group animate-reveal focus:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
+    >
+      <span className="illo-panel relative z-[2] block aspect-[16/9] rounded-[2px] overflow-hidden">
+        <span className="block w-full h-full p-3 transition-transform duration-500 group-hover:scale-[1.04]">
+          <ToolIllustration kind={kind} />
+        </span>
+      </span>
+      <span className="relative z-[2] px-3 pt-3 pb-2.5 flex flex-col gap-1.5 flex-1">
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-[16px] font-semibold tracking-[-0.01em] text-fg">{label}</span>
+          <OutputTag text={output} />
+        </span>
+        <span className="text-[13.5px] text-fg/60 leading-snug">{desc}</span>
+        <span className="mt-auto pt-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-fg/65 group-hover:text-fg transition-colors">
+          Start
+          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2} aria-hidden />
+        </span>
+      </span>
+    </button>
   );
 }

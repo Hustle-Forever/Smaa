@@ -349,6 +349,12 @@ export function PosterCreator({
     "yas.poster.batchStack",
     [],
   );
+  // True while a Library resume is still loading its poster. Until then the
+  // batch restored above belongs to an EARLIER session, so it is neither shown
+  // nor reported: reporting it mirrored its ids into the URL, and App's
+  // hashchange (which fires after that mirror) re-routed the resume onto the
+  // old poster — "Continue editing" opened the last poster instead of this one.
+  const [resuming, setResuming] = useState(initialRunId != null);
   const [phase, setPhase] = useState<"idle" | "generating">("idle");
 
   // When the run started, so JobProgress can show elapsed time. Derived from the
@@ -378,6 +384,16 @@ export function PosterCreator({
   // Re-entrance lock for the Generate button — closes the synchronous
   // double-click hole between onClick and setPhase committing to state.
   const generateLockRef = useRef(false);
+  // A batch now answers with its four `generating` cards as soon as the
+  // concepts exist; the grey placeholders only cover the wait for that answer.
+  const [awaitingBatch, setAwaitingBatch] = useState(false);
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const confirm = useConfirm();
@@ -446,7 +462,10 @@ export function PosterCreator({
   // (no age filter), drop any that 404, and re-hang them as ONE batch preserving
   // id order. A single id (Library "Continue" / legacy) keeps the single-card path.
   useEffect(() => {
-    if (initialRunId == null) return;
+    if (initialRunId == null) {
+      setResuming(false);
+      return;
+    }
     let cancelled = false;
     const ids =
       initialRunIds && initialRunIds.length > 1 ? initialRunIds : [initialRunId];
@@ -478,6 +497,9 @@ export function PosterCreator({
         })
         .catch(() => {
           /* non-fatal — stays on the composer */
+        })
+        .finally(() => {
+          if (!cancelled) setResuming(false);
         });
     } else {
       api.yasProducer.posterOnly
@@ -495,6 +517,9 @@ export function PosterCreator({
         })
         .catch(() => {
           /* non-fatal — stays on the composer */
+        })
+        .finally(() => {
+          if (!cancelled) setResuming(false);
         });
     }
     return () => {
@@ -517,8 +542,8 @@ export function PosterCreator({
 
   // The batch currently on screen (last entry of the stack).
   const currentBatch = useMemo(
-    () => (batchStack.length ? batchStack[batchStack.length - 1] : []),
-    [batchStack],
+    () => (!resuming && batchStack.length ? batchStack[batchStack.length - 1] : []),
+    [batchStack, resuming],
   );
   const hasResult = currentBatch.length > 0;
 
@@ -527,11 +552,12 @@ export function PosterCreator({
   // batchStack (our OWN state) exactly like TalkingHeadV2Creator's onRunId effect;
   // skip while the grid is empty so we never emit an empty batch.
   useEffect(() => {
+    if (resuming) return;
     const top = batchStack.length ? batchStack[batchStack.length - 1] : [];
     if (!top.length) return;
     onBatch?.(top.map((g) => g.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchStack]);
+  }, [batchStack, resuming]);
 
   // The card selected for refine, resolved against the on-screen batch. If the
   // selection isn't in the current batch (e.g. you navigated the breadcrumb away),
@@ -558,6 +584,74 @@ export function PosterCreator({
       ),
     );
     setAttempts((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+  }
+
+  // After a reload in the middle of a batch the restored cards are still
+  // `generating`: keep watching them (and keep Generate locked meanwhile).
+  useEffect(() => {
+    const top = batchStack.length ? batchStack[batchStack.length - 1] : [];
+    const ids = top.filter((g) => g.status === "generating").map((g) => g.id);
+    if (!ids.length || generateLockRef.current) return;
+    generateLockRef.current = true;
+    setPhase("generating");
+    void watchBatch(ids).finally(() => {
+      generateLockRef.current = false;
+      if (aliveRef.current) setPhase("idle");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Watch a background batch: every few seconds re-read the cards still
+  // `generating`, and drop each one in as it turns ready (or failed). Ends when
+  // all of them have ended, or after six minutes (a card still going then is
+  // marked so nobody waits on it forever). Resolves with the final rows.
+  async function watchBatch(ids: number[]): Promise<YasPosterOnlyGeneration[]> {
+    const POLL_MS = 3000;
+    const GIVE_UP_MS = 6 * 60_000;
+    const started = Date.now();
+    const latest = new Map<number, YasPosterOnlyGeneration>();
+    let pending = new Set(ids);
+    while (pending.size && aliveRef.current) {
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      const rows = await Promise.all(
+        [...pending].map((id) => api.yasProducer.posterOnly.fetch(id).catch(() => null)),
+      );
+      for (const g of rows) {
+        if (!g) continue;
+        if (g.status === "generating") {
+          // A card older than the give-up window is one a restart orphaned
+          // (a reload can bring those back): end it now, not six minutes on.
+          const age = Date.now() - new Date(g.created_at).getTime();
+          if (!(age > GIVE_UP_MS)) continue;
+          patchGeneration(g.id, { status: "failed", error: "This poster stopped before it finished. Try again." });
+          pending.delete(g.id);
+          continue;
+        }
+        pending.delete(g.id);
+        latest.set(g.id, g);
+        patchGeneration(g.id, g);
+      }
+      if (pending.size && Date.now() - started > GIVE_UP_MS) {
+        for (const id of pending) {
+          patchGeneration(id, { status: "failed", error: "This poster took too long. Try again." });
+        }
+        pending = new Set();
+      }
+    }
+    // The batch's cost and set id are stamped just after its last picture:
+    // read the rows once more so the cards and the toast carry them.
+    if (aliveRef.current) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const rows = await Promise.all(
+        ids.map((id) => api.yasProducer.posterOnly.fetch(id).catch(() => null)),
+      );
+      for (const g of rows) {
+        if (!g) continue;
+        latest.set(g.id, g);
+        patchGeneration(g.id, g);
+      }
+    }
+    return ids.map((id) => latest.get(id)).filter((g): g is YasPosterOnlyGeneration => !!g);
   }
 
   // When a poster is deleted from the Library while this creator is still mounted
@@ -651,6 +745,7 @@ export function PosterCreator({
     generateLockRef.current = true;
     setError(null);
     setPhase("generating");
+    setAwaitingBatch(true);
     try {
       const batch = await api.yasProducer.posterOnly.generate({
         topic: topic.trim(),
@@ -664,12 +759,16 @@ export function PosterCreator({
         image_model: "gemini_pro",
         style,
         aspect,
+        progressive: true,
       });
       // Fresh root batch — reset the navigation stack.
       setBatchStack([batch.items]);
       setAttempts((prev) => [...batch.items, ...prev]);
-      const total = batch.items.reduce((s, g) => s + Number(g.cost_usd || 0), 0);
-      const ok = batch.items.filter((g) => g.status === "ready").length;
+      setAwaitingBatch(false);
+      const done = batch.progressive ? await watchBatch(batch.items.map((g) => g.id)) : batch.items;
+      if (!aliveRef.current) return;
+      const total = done.reduce((s, g) => s + Number(g.cost_usd || 0), 0);
+      const ok = done.filter((g) => g.status === "ready").length;
       toast.info(`${ok} variant${ok === 1 ? "" : "s"} generated`, `~$${total.toFixed(2)}`);
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -687,6 +786,7 @@ export function PosterCreator({
       }
     } finally {
       generateLockRef.current = false;
+      setAwaitingBatch(false);
       setPhase("idle");
     }
   }
@@ -700,12 +800,16 @@ export function PosterCreator({
     generateLockRef.current = true;
     setError(null);
     setPhase("generating");
+    setAwaitingBatch(true);
     try {
-      const batch = await api.yasProducer.posterOnly.variants(gen.id, "gemini_pro");
+      const batch = await api.yasProducer.posterOnly.variants(gen.id, "gemini_pro", true);
       setBatchStack((prev) => [...prev, batch.items]);
       setAttempts((prev) => [...batch.items, ...prev]);
-      const total = batch.items.reduce((s, g) => s + Number(g.cost_usd || 0), 0);
-      const ok = batch.items.filter((g) => g.status === "ready").length;
+      setAwaitingBatch(false);
+      const done = batch.progressive ? await watchBatch(batch.items.map((g) => g.id)) : batch.items;
+      if (!aliveRef.current) return;
+      const total = done.reduce((s, g) => s + Number(g.cost_usd || 0), 0);
+      const ok = done.filter((g) => g.status === "ready").length;
       toast.info(`${ok} variant${ok === 1 ? "" : "s"} from #${gen.id}`, `~$${total.toFixed(2)}`);
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -717,6 +821,7 @@ export function PosterCreator({
       }
     } finally {
       generateLockRef.current = false;
+      setAwaitingBatch(false);
       setPhase("idle");
     }
   }
@@ -1065,7 +1170,7 @@ export function PosterCreator({
             </button>
             {phase === "idle" && (
               <p className="text-2xs text-muted text-center mt-1.5">
-                gpt-4o + Nano Banana Pro · 4 variants · ~$0.55 · about 30-60s · 42 logo baked in
+                gpt-4o + Nano Banana Pro · 4 variants · ~$0.55 · each shows as it's ready (~20-30 s apart) · 42 logo baked in
               </p>
             )}
             {phase === "generating" && (
@@ -1139,7 +1244,7 @@ export function PosterCreator({
 
               {/* 2×2 grid */}
               <div className="grid grid-cols-2 gap-3">
-                {phase === "generating"
+                {awaitingBatch
                   ? Array.from({ length: 4 }).map((_, i) => (
                       <div
                         key={i}
@@ -1180,7 +1285,7 @@ export function PosterCreator({
               </div>
               {phase === "generating" && (
                 <p className="text-2xs text-muted text-center">
-                  Rendering 4 variants · ~30-60 seconds
+                  Each poster appears as soon as it's ready
                 </p>
               )}
 

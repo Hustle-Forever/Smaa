@@ -33,6 +33,7 @@
  * reader on the post list. After mount the channel is local state, exactly like
  * Viral Social Trends: pressing a chip does not touch the hash.
  */
+import { RadarPicks } from "./RadarPicks";
 import {
   useCallback,
   useEffect,
@@ -97,12 +98,14 @@ import {
   FreshnessPill,
   regionLabel,
   SELECT_CLS,
+  pastViralOf,
   ViralPill,
   viralOf,
 } from "./shared";
 import { TrendDetailDialog } from "./TrendDetailDialog";
 import { humanError, trendsApi } from "./trendsApi";
 import type {
+  TrendCompetitor,
   TrendMediaType,
   TrendNewsHealth,
   TrendPost,
@@ -116,23 +119,19 @@ import type {
 
 const PAGE_SIZE = 36;
 
+/** How a watched account reads in the competitor picker. */
+function competitorName(c: TrendCompetitor): string {
+  const handle = `@${c.username.replace(/^@/, "")}`;
+  const name = (c.display_name || "").trim();
+  return name && name.toLowerCase() !== c.username.toLowerCase() ? `${name} (${handle})` : handle;
+}
+
 /**
- * Sort options, named after what they DO rather than after the column they
- * order by. "Outperformance" and "Opportunity (blend)" were the scorer's own
- * vocabulary; "Beat their average by most" is the same sort, said in words a
- * reader can act on without being taught the scoring model first.
+ * The feed keeps each tab's own order and offers no sort control: All and
+ * Competitors read best opportunity first, Industry Signal most likely to
+ * go viral first (`selectCategory`). In the sort's place the toolbar filters
+ * by competitor, which is what people asked for ("only MBZUAI").
  */
-const SORTS: Array<{ value: TrendSort; label: string }> = [
-  // First because it is what the news channel opens on: the judge's own
-  // answer to "what could go viral", with a competitor post's outperformance
-  // standing in for the same thing on the combined channel.
-  { value: "viral", label: "Most likely to go viral" },
-  { value: "opportunity", label: "Best opportunity" },
-  { value: "outperformance", label: "Beat their average by most" },
-  { value: "fit", label: "Best fit for 42" },
-  { value: "engagement", label: "Most engagement" },
-  { value: "recent", label: "Newest first" },
-];
 
 /**
  * The two discovery channels, plus a combined view.
@@ -300,6 +299,13 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
   // for the Viral Social Trends tab and touches none of the filters below.
   const [channel, setChannel] = useState<FeedChannel>(initialChannel ?? "posts");
   const [sort, setSort] = useState<TrendSort>("opportunity");
+  // One watched account, or "" for all of them. Sent as competitor_id, so the
+  // count and paging are the server's, not a filter over one loaded page.
+  const [competitorId, setCompetitorId] = useState<number | "">("");
+  const [competitors, setCompetitors] = useState<TrendCompetitor[]>([]);
+  // From / to (YYYY-MM-DD, inclusive), on the date a post or story went out.
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [region, setRegion] = useState<"" | TrendRegion>("");
   const [mediaType, setMediaType] = useState<"" | TrendMediaType>("");
   const [theme, setTheme] = useState("");
@@ -320,7 +326,7 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
   const isReport = channel === "report";
 
   // --- the filter disclosure ------------------------------------------------
-  // Shut on arrival. Search, sort and the UAE toggle stay on screen because
+  // Shut on arrival. Search and the competitor picker stay on screen because
   // they are what people reach for; region, outlet, format, theme, the fit bar,
   // and "Show" live behind this one button.
   //
@@ -403,6 +409,28 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
     return () => clearTimeout(t);
   }, [qInput]);
 
+  // The competitor picker: every watched account, by name. Excluded ones stay
+  // in the list because their earlier posts are still in the feed.
+  useEffect(() => {
+    let cancelled = false;
+    trendsApi
+      .competitors()
+      .then((r) => {
+        if (cancelled) return;
+        setCompetitors(
+          [...(r.items || [])].sort((a, b) =>
+            competitorName(a).localeCompare(competitorName(b), undefined, { sensitivity: "base" }),
+          ),
+        );
+      })
+      .catch(() => {
+        /* the picker just offers "All competitors" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // --- side data: themes for the picker + stats for the empty states --------
   useEffect(() => {
     let cancelled = false;
@@ -482,6 +510,7 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
       JSON.stringify({
         category,
         sort,
+        competitorId,
         region,
         mediaType,
         theme,
@@ -489,7 +518,7 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
         show,
         q,
       }),
-    [category, sort, region, mediaType, theme, minFit, show, q],
+    [category, sort, competitorId, region, mediaType, theme, minFit, show, q],
   );
   const filterKeyRef = useRef(filterKey);
 
@@ -511,6 +540,7 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
         const res = await trendsApi.posts({
           sort,
           ...(category ? { source: category } : {}),
+          ...(competitorId !== "" ? { competitor_id: competitorId } : {}),
           ...(region ? { region } : {}),
           ...(mediaType ? { media_type: mediaType } : {}),
           ...(theme ? { theme } : {}),
@@ -639,9 +669,10 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
       setCategory(next);
       setOffset(0);
       if (next === "news") {
-        // What could travel, on top. The owner asked for exactly this order,
-        // and "Newest first" is one click away for the days it is wanted.
+        // What could travel, on top: the order the owner asked for.
         setSort("viral");
+        // A story belongs to no competitor, so this filter would empty the tab.
+        setCompetitorId("");
         // No fit bar: the judge already refused to write anything below it, so
         // a bar here could only hide stories that passed the real test.
         setMinFit(0);
@@ -798,7 +829,10 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
   }, [toast]);
 
   const clearFilters = useCallback(() => {
-    setSort("opportunity");
+    setSort(isNews ? "viral" : "opportunity");
+    setCompetitorId("");
+    setFromDate("");
+    setToDate("");
     setRegion("");
     setMediaType("");
     setTheme("");
@@ -821,13 +855,30 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
   // There WAS a client-side "UAE only" filter here, on `region`. Industry
   // Signal is no longer scoped to the UAE and news rows carry no region at all,
   // so a toggle over that column would filter everything to nothing.
-  const visible = notDismissed;
+  const visible = useMemo(() => {
+    if (!fromDate && !toDate) return notDismissed;
+    const from = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+    const to = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : Infinity;
+    return notDismissed.filter((p) => {
+      const t = p.posted_at ? new Date(p.posted_at).getTime() : NaN;
+      return Number.isFinite(t) && t >= from && t <= to;
+    });
+  }, [notDismissed, fromDate, toDate]);
+  // Every measured competitor result we hold: what Viral potential is ranked
+  // against, so it grows (and sharpens) with every scan.
+  const viralPeers = useMemo(
+    () =>
+      (items ?? [])
+        .filter((p) => p.source !== "news" && p.outperformance != null && Number.isFinite(p.outperformance))
+        .map((p) => p.outperformance as number),
+    [items],
+  );
   const hiddenDismissed = (items?.length ?? 0) - notDismissed.length;
   // On news, the default fit bar is not a filter the user chose, so it does not
   // light up "Clear filters" on its own.
   const filtersActive =
     !!region || !!mediaType || !!theme || !!q || show !== "active" ||
-    minFit > 0;
+    minFit > 0 || !!fromDate || !!toDate;
   const hasMore = (items?.length ?? 0) < total;
   const firstLoad = loading && items === null;
 
@@ -1085,28 +1136,47 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
                   className="min-w-[13rem] flex-1"
                 />
 
-                {/* Sort stays in the open row. It is the control people reach for
-                    most, and its current value is the biggest single clue to why
-                    the list is in the order it is in, so hiding it behind a
-                    disclosure would hide the answer to the first question anyone
-                    asks about a ranked feed. The label is visible rather than an
-                    aria-label: a bare select in a toolbar is a guess. */}
+                {/* Which account the feed shows. In the open row, where the sort
+                    used to be: it is the control people reach for here ("only
+                    MBZUAI"), and its value explains what is on screen. */}
                 <label className="inline-flex items-center gap-1.5">
-                  <span className="eyebrow">Sort</span>
+                  <span className="eyebrow">Competitor</span>
                   <select
-                    value={sort}
+                    value={competitorId === "" ? "" : String(competitorId)}
                     onChange={(e) => {
-                      setSort(e.target.value as TrendSort);
+                      setCompetitorId(e.target.value ? Number(e.target.value) : "");
                       setOffset(0);
                     }}
                     className={SELECT_CLS}
                   >
-                    {SORTS.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
+                    <option value="">All competitors</option>
+                    {competitors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {competitorName(c)}
                       </option>
                     ))}
                   </select>
+                </label>
+
+                <label className="inline-flex items-center gap-1.5">
+                  <span className="eyebrow">From</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    max={toDate || undefined}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className={SELECT_CLS}
+                  />
+                </label>
+                <label className="inline-flex items-center gap-1.5">
+                  <span className="eyebrow">To</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    min={fromDate || undefined}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className={SELECT_CLS}
+                  />
                 </label>
 
                 <ToolbarSpacer />
@@ -1382,6 +1452,8 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
             {/* ---------------------------------------------------------------- */}
             {/* Grid                                                              */}
             {/* ---------------------------------------------------------------- */}
+            <RadarPicks which={category} />
+
             {firstLoad ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -1420,6 +1492,7 @@ export function TrendsFeed({ initialChannel }: { initialChannel?: FeedChannel })
                       post={post}
                       onStatus={setStatus}
                       onMakeThis={makeThis}
+                      viralPeers={viralPeers}
                     />
                   ))}
                 </div>
@@ -1517,10 +1590,12 @@ function PostCard({
   post,
   onStatus,
   onMakeThis,
+  viralPeers,
 }: {
   post: TrendPost;
   onStatus: (post: TrendPost, next: TrendPostStatus) => void | Promise<void>;
   onMakeThis: (post: TrendPost) => void | Promise<void>;
+  viralPeers: readonly number[];
 }) {
   const dismissed = post.status === "dismissed";
   const saved = post.status === "saved";
@@ -1551,7 +1626,7 @@ function PostCard({
   // Could this go viral? The one score a news card shows, and the order the
   // news channel opens in. Null until the housekeeping tick has scored a story
   // from before the score existed.
-  const viral = isNews ? viralOf(post) : null;
+  const viral = isNews ? viralOf(post) : pastViralOf(post.outperformance, viralPeers);
   // The detail dialog, owned by the card. A dedicated BUTTON rather than a
   // clickable card body: the card already holds "Make this", save, dismiss, the
   // outbound permalink and (on news) a publisher line, so a click target
@@ -1734,7 +1809,7 @@ function PostCard({
             "Minimum fit" and by theme. Details shows all of it with its
             provenance, which is the surface built for exactly that question. */}
 
-        {isNews && (
+        {(isNews || viral) && (
           <div>
             {viral ? (
               <ViralPill verdict={viral} />
@@ -1909,6 +1984,7 @@ function PostCard({
         <TrendDetailDialog
           target={{ kind: "post", post }}
           onClose={() => setDetailOpen(false)}
+          pastViral={isNews ? null : viral}
         />
       )}
     </article>

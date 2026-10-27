@@ -159,7 +159,7 @@ _GEMINI_FACE_SYSTEM = (
 # tails. 90s was producing silent timeouts on intro+outro. 240s gives us
 # headroom on the slow tail without letting genuinely-stuck calls run forever.
 #
-# gemini-3-pro-image-preview (Nano Banana) is faster than gpt-image-1 for
+# gemini-3-pro-image (Nano Banana) is faster than gpt-image-1 for
 # text-to-image (~30-60s) but with source_images attached it routinely
 # crosses 180s and sometimes spikes to ~250s. 300s gives each attempt enough
 # headroom while still bounding genuinely-stuck calls.
@@ -380,7 +380,7 @@ async def _run_veo_submits_bounded(
 
 # Max number of image-generation calls in flight at once. The talking-head-v2
 # preview fires up to 5 image gens per run (main + intro + outro + extra scene
-# keyframes); the premium gemini-3-pro-image-preview model has a tight
+# keyframes); the premium gemini-3-pro-image model has a tight
 # per-minute quota that a 5-way burst (or several runs back-to-back) trips with
 # a 429 RESOURCE_EXHAUSTED. Bounding concurrency spaces the calls out so the
 # built-in 4x retry in `gemini_image` can succeed. Timing only — no effect on
@@ -9523,14 +9523,16 @@ def composition_url(run_id: int, md: dict) -> str | None:
 
 def saved_current(run: dict, md: dict) -> bool:
     """Whether the reel being served is the one saved to assets (a reel
-    finalized again after saving is not saved yet). A legacy row: saved at
-    all."""
-    from . import th_reel
+    finalized again after saving is not saved yet, nor one whose background
+    music changed since: saved_music is the music version saved, None
+    without music). A legacy row: saved at all."""
+    from . import th_reel, th_reel_music
 
     if th_reel.owned(md):
         # Saved before the first Finalize here: that reel (no seq) was saved.
         return (run.get("saved_asset_id") is not None
-                and md.get("saved_seq") == md.get("composition_good_seq"))
+                and md.get("saved_seq") == md.get("composition_good_seq")
+                and md.get("saved_music") == th_reel_music.current_id(md))
     return run.get("saved_asset_id") is not None
 
 
@@ -9669,7 +9671,7 @@ async def fetch_run(run_id: int, *, with_reel: bool = True) -> dict:
     also the reel scene by scene (`reel`, and composition_stale by what goes
     in) — a list of runs leaves it out (it reads each clip's frames once).
     """
-    from . import th_reel
+    from . import th_reel, th_reel_music
 
     run = await _fetch_run_row(run_id)
     md = run["metadata"] or {}
@@ -10076,8 +10078,9 @@ async def fetch_run(run_id: int, *, with_reel: bool = True) -> dict:
     composition_stale = False
     if th_reel.owned(md):
         # Finalized here: out of date when what goes in now isn't what the
-        # reel being served was made of (a pick, an end, an exclusion, a
-        # clip made again), or a clip is out of date or being made again.
+        # reel being served was made of (a pick, an end, a start, an
+        # exclusion, a clip made again), or a clip is out of date or being
+        # made again.
         if th_reel.good_reel(md):
             composition_stale = (not reel_ready) or (
                 reel_state is not None and reel_state.sha != md.get("composition_good_sha"))
@@ -10086,7 +10089,7 @@ async def fetch_run(run_id: int, *, with_reel: bool = True) -> dict:
             any(_seg_included_stale(s) for s in scenes_payload)
             or (th_reel.bookend_stale(md, "intro") and not bool(md.get("intro_excluded")))
             or (th_reel.bookend_stale(md, "outro") and not bool(md.get("outro_excluded")))
-            # A legacy reel: any version or end chosen since.
+            # A legacy reel: any version, end or start chosen since.
             or (reel_state is not None and reel_state.any_choice())
         )
 
@@ -10198,6 +10201,9 @@ async def fetch_run(run_id: int, *, with_reel: bool = True) -> dict:
         "saved_asset_id": run.get("saved_asset_id"),
         # "Saved" means the reel being served is the one saved to assets.
         "saved_current": saved_current(run, md),
+        # Background music under the reel (Final): the track, the switch,
+        # the music version's URL (services/th_reel_music.public_state).
+        "music": th_reel_music.public_state(run["id"], md),
         "created_at": (
             run["created_at"].isoformat() if run.get("created_at") else None
         ),
@@ -10215,7 +10221,7 @@ async def save_to_assets(*, run_id: int, display_name: str | None = None) -> dic
     """Copy the final composition MP4 into producer_assets and mark the
     yas_generations row as saved.
     """
-    from . import th_reel
+    from . import th_reel, th_reel_music
 
     run = await _fetch_run_row(run_id)
     md = run["metadata"] or {}
@@ -10230,7 +10236,18 @@ async def save_to_assets(*, run_id: int, display_name: str | None = None) -> dic
     if not comp_path.exists():
         raise HTTPException(410, "Composition file missing on disk.")
 
-    raw = comp_path.read_bytes()
+    # Background music on and made for this reel: its music version is the
+    # one saved (the one the Final step shows). Otherwise the reel, as ever.
+    music_raw = await th_reel_music.current_bytes(md)
+    raw = music_raw if music_raw is not None else comp_path.read_bytes()
+    # saved_seq: which reel was saved (a reel finalized again after this is
+    # offered for saving again); saved_music, only on a reel that has had
+    # music: which music version (None: none), so a music change is too.
+    saved_patch: dict = {}
+    if th_reel.owned(md):
+        saved_patch["saved_seq"] = md.get("composition_good_seq")
+        if "reel_music" in md:
+            saved_patch["saved_music"] = th_reel_music.current_id(md) if music_raw is not None else None
     script = md.get("script") or {}
     topic = run.get("topic") or "Talking head"
 
@@ -10300,8 +10317,7 @@ async def save_to_assets(*, run_id: int, display_name: str | None = None) -> dic
             new = await cur.fetchone()
             asset_id = int(new["id"])
 
-            # saved_seq: which reel was saved (a reel finalized again after
-            # this is offered for saving again).
+            # Which reel (and music version) was saved: saved_patch above.
             await cur.execute(
                 """
                 UPDATE yas_generations
@@ -10311,8 +10327,7 @@ async def save_to_assets(*, run_id: int, display_name: str | None = None) -> dic
                        updated_at = NOW()
                  WHERE id = %s
                 """,
-                (STATUS_SAVED, asset_id,
-                 Jsonb({"saved_seq": md.get("composition_good_seq")} if th_reel.owned(md) else {}), run_id),
+                (STATUS_SAVED, asset_id, Jsonb(saved_patch), run_id),
             )
 
     log.info("[yas-th] saved run #%d → producer_assets #%d", run_id, asset_id)
@@ -10355,8 +10370,13 @@ async def open_in_editor(*, run_id: int, mode: str) -> dict:
         if not comp_path.exists():
             raise HTTPException(410, "Composition file missing on disk.")
         slug = "".join(c if c.isalnum() else "_" for c in topic.lower())[:32].strip("_") or "talking_head"
+        # Background music on and made for this reel: its music version opens.
+        from . import th_reel_music
+
+        music_raw = await th_reel_music.current_bytes(md)
         desc = await ve_service.import_upload(
-            raw=comp_path.read_bytes(), filename=f"{slug}.mp4", mime="video/mp4",
+            raw=music_raw if music_raw is not None else comp_path.read_bytes(),
+            filename=f"{slug}.mp4", mime="video/mp4",
         )
         sources = [{
             "kind": "upload",

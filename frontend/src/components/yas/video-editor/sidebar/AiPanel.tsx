@@ -611,13 +611,6 @@ export function AiPanel() {
         )}
       </div>
 
-      {/* The reasoning brain couldn't be reached — say why, quietly. */}
-      {agentProviders && !agentProviders.ok && (
-        <div className="shrink-0 px-2.5 py-1 border-b border-warning/30 bg-warning/10 text-[9.5px] text-warning leading-snug break-words">
-          {agentProviders.reason || "The AI is not available right now."}
-        </div>
-      )}
-
       <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3">
         {/* ===== Selection scope — what the chatbot acts on ===== */}
         <div
@@ -673,23 +666,23 @@ export function AiPanel() {
               </button>
             ))}
           </div>
-          <p className="text-3xs text-muted leading-relaxed">
-            {selectedClips.length > 0 ? (
-              <>
-                <span className="text-accent font-medium">{selectedClips.length} picked</span>
-                {selBreakdown ? ` (${selBreakdown})` : ""}
-                {selectMode
-                  ? ". Click more to add or remove them."
-                  : ". Whatever you ask will apply to these."}
-              </>
-            ) : selectMode ? (
-              <span className="text-accent">
-                Now click the clips you want.
-              </span>
-            ) : (
-              <>I will work on the whole video. Pick clips above if you want just some of it.</>
-            )}
-          </p>
+          {(selectedClips.length > 0 || selectMode) && (
+            <p className="text-3xs text-muted leading-relaxed">
+              {selectedClips.length > 0 ? (
+                <>
+                  <span className="text-accent font-medium">{selectedClips.length} picked</span>
+                  {selBreakdown ? ` (${selBreakdown})` : ""}
+                  {selectMode
+                    ? ". Click more to add or remove them."
+                    : ". Whatever you ask will apply to these."}
+                </>
+              ) : (
+                <span className="text-accent">
+                  Now click the clips you want.
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
         {/* ===== Chat — the easy way: say what you want in plain words ===== */}
@@ -708,22 +701,6 @@ export function AiPanel() {
             </div>
           )}
           <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
-            {aiChat.length === 0 && (
-              <div className="text-[10.5px] text-muted leading-relaxed space-y-1">
-                <p>Hi! Tell me what to do in plain words. Try:</p>
-                <ul className="space-y-0.5 pl-0.5">
-                  <li className="text-fg/70">“add captions for the whole video”</li>
-                  <li className="text-fg/70">“add upbeat music, quiet under the talking”</li>
-                  <li className="text-fg/70">“put the mouse sticker in at 6 seconds”</li>
-                  <li className="text-fg/70">“add an opening and an ending”</li>
-                  <li className="text-fg/70">“make this clip play faster”</li>
-                </ul>
-                <p className="pt-0.5">
-                  To point me at one thing, use <span className="text-fg/70">Pick clips</span>{" "}
-                  above, or drag it in from the left.
-                </p>
-              </div>
-            )}
             {aiChat.map((m) => (
               <ChatBubble key={m.id} msg={m} />
             ))}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Music, Pause, Pencil, Play, Trash2, X } from "lucide-react";
 
 import { useModalChrome } from "../../lib/useModalChrome";
 import { createPortal } from "react-dom";
@@ -112,17 +113,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
 
   return createPortal(
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        background: "rgba(0,0,0,0.7)",
-        backdropFilter: "blur(2px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "16px",
-      }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[rgba(15,16,17,0.45)] backdrop-blur-[6px] animate-fadeIn"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -132,45 +123,48 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
         tabIndex={-1}
         onKeyDown={trapTab}
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-bg rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col animate-scaleIn"
+        className="relative bg-k-surface rounded-[2px] overflow-hidden flex flex-col animate-scaleIn outline-none shadow-[0_0_0_1px_rgba(15,23,42,0.06),0_30px_80px_-20px_rgba(15,23,42,0.45)]"
         style={{ width: "min(820px, 100%)", maxHeight: "92vh" }}
       >
         {/* Header */}
-        <header className="shrink-0 px-5 py-3.5 border-b border-border flex items-center gap-3 flex-wrap bg-bg">
+        <header className="shrink-0 px-5 py-3.5 border-b border-fg/[0.07] flex items-center gap-3 flex-wrap bg-k-surface">
           <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
             <span
               className={[
-                "inline-flex items-center gap-1.5 font-mono text-3xs uppercase tracking-wider2 px-2 py-1 rounded-full",
+                "inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full ring-1",
                 data?.enabled
-                  ? "bg-success/10 text-success border border-success/20"
-                  : "bg-bg-muted text-muted border border-border",
+                  ? "bg-gold-soft text-gold-ink ring-gold/30"
+                  : "bg-fg/[0.05] text-fg/60 ring-fg/10",
               ].join(" ")}
             >
               <span
                 aria-hidden
                 className={[
                   "w-1.5 h-1.5 rounded-full",
-                  data?.enabled ? "bg-success" : "bg-muted/60",
+                  data?.enabled ? "bg-gold" : "bg-fg/30",
                 ].join(" ")}
               />
-              {data?.enabled ? "In rotation" : "Muted"}
+              {/* "Active" = the AI may pick it for new posts; "Paused" = it will not. */}
+              {data?.enabled ? "Active" : "Paused"}
             </span>
-            <span className="pill pill-uploaded">{data?.asset_kind ?? "?"}</span>
+            <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-fg/[0.05] text-fg/65 ring-1 ring-fg/10 capitalize">
+              {data?.asset_kind ?? "?"}
+            </span>
             {data?.archetype && (
-              <span className="font-mono text-3xs uppercase tracking-wider2 px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
+              <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-fg/[0.05] text-fg/65 ring-1 ring-fg/10 capitalize">
                 {data.archetype.replace("_", " ")}
               </span>
             )}
-            <h2 className="text-sm font-semibold text-fg truncate min-w-0">
+            <h2 className="text-[15px] font-semibold text-fg truncate min-w-0">
               {data?.display_name || data?.slug || "asset"}
             </h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full bg-bg-muted hover:bg-border text-fg flex items-center justify-center text-base shrink-0"
+            className="w-9 h-9 rounded-full text-fg/60 hover:text-fg hover:bg-fg/[0.06] flex items-center justify-center shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-fg/30"
           >
-            ×
+            <X className="w-4 h-4" strokeWidth={2} aria-hidden />
           </button>
         </header>
 
@@ -189,7 +183,11 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
               <div
                 className={[
                   "flex items-center justify-center",
-                  data.asset_kind === "font" ? "bg-white" : "bg-black",
+                  data.asset_kind === "font"
+                    ? "bg-k-surface"
+                    : data.asset_kind === "audio"
+                      ? "bg-k-inset"
+                      : "bg-black",
                 ].join(" ")}
                 style={{ maxHeight: "52vh" }}
               >
@@ -210,7 +208,9 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                   />
                 ) : data.asset_kind === "audio" ? (
                   <div className="w-full flex flex-col items-center gap-3 py-10 px-6">
-                    <span className="text-5xl text-emerald-300 leading-none">♪</span>
+                    <span className="icon-well w-14 h-14 !rounded-none">
+                      <Music className="w-6 h-6" strokeWidth={1.5} aria-hidden />
+                    </span>
                     <audio src={fileUrl} controls className="w-full max-w-md" />
                   </div>
                 ) : (
@@ -223,28 +223,36 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   {!editing ? (
                     <>
-                      <button onClick={() => setEditing(true)} className="btn btn-ghost text-xs">
+                      <button onClick={() => setEditing(true)} className="btn btn-ghost btn-sm !rounded-none h-9 px-3.5">
+                        <Pencil className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden />
                         Edit
                       </button>
                       <button
                         onClick={toggleEnabled}
+                        title={data.enabled ? "The AI will not pick this for new posts" : "The AI can pick this for new posts again"}
                         className={[
-                          "btn text-xs",
+                          "btn btn-sm !rounded-none h-9 px-3.5",
                           data.enabled ? "btn-ghost" : "btn-accent",
                         ].join(" ")}
                       >
-                        {data.enabled ? "Mute" : "Enable"}
+                        {data.enabled ? (
+                          <Pause className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden />
+                        ) : (
+                          <Play className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden />
+                        )}
+                        {data.enabled ? "Pause" : "Make active"}
                       </button>
-                      <button onClick={deleteAsset} className="btn btn-ghost text-xs text-danger">
+                      <button onClick={deleteAsset} className="btn btn-ghost btn-sm !rounded-none h-9 px-3.5 text-k-danger hover:bg-red-50 hover:border-red-200">
+                        <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden />
                         Delete
                       </button>
-                      <span className="ml-auto font-mono text-3xs text-muted">
+                      <span className="ml-auto text-[11.5px] text-fg/40 tabular-nums">
                         #{data.id} · {data.slug}
                       </span>
                     </>
                   ) : (
                     <>
-                      <button onClick={saveEdits} className="btn btn-primary text-xs">
+                      <button onClick={saveEdits} className="btn btn-accent btn-sm h-9">
                         Save changes
                       </button>
                       <button
@@ -253,7 +261,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                           setDraftName(data.display_name || "");
                           setDraftDesc(data.ai_description);
                         }}
-                        className="btn btn-ghost text-xs"
+                        className="btn btn-ghost btn-sm !rounded-none h-9 px-4"
                       >
                         Cancel
                       </button>
@@ -264,12 +272,12 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                 {/* Display name */}
                 {editing && (
                   <label className="text-sm block space-y-1">
-                    <span className="eyebrow">Display name</span>
+                    <span className="text-[13.5px] font-semibold text-fg">Name</span>
                     <input
                       type="text"
                       value={draftName}
                       onChange={(e) => setDraftName(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm focus:outline-none focus:border-accent focus:shadow-glow transition-shadow"
+                      className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fg/20 focus:border-fg/30 transition-shadow"
                     />
                   </label>
                 )}
@@ -277,14 +285,14 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                 {/* Stat strip — usage signals */}
                 <div className="grid grid-cols-3 gap-2">
                   <MiniStat
-                    label="Used"
-                    value={`${fmtNumber(data.usage_count)}×`}
-                    hint="In scripts"
+                    label="Times used"
+                    value={`${fmtNumber(data.usage_count)}`}
+                    hint="in scripts"
                   />
                   <MiniStat
                     label="Last used"
                     value={data.last_used_at ? fmtRel(data.last_used_at) : "never"}
-                    hint={data.last_used_at ? "" : "first in rotation"}
+                    hint={data.last_used_at ? "" : "not used yet"}
                   />
                   <MiniStat label="Added" value={fmtRel(data.created_at)} hint="" />
                 </div>
@@ -294,7 +302,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                   <>
                     {(data.metadata as any)?.caption && (
                       <section>
-                        <p className="eyebrow mb-2">Caption</p>
+                        <h3 className="text-[13.5px] font-semibold text-fg mb-2">Caption</h3>
                         <p className="text-sm text-fg whitespace-pre-wrap leading-relaxed">
                           {(data.metadata as any).caption}
                         </p>
@@ -302,7 +310,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                     )}
                     {(data.metadata as any)?.image_understanding && (
                       <section>
-                        <p className="eyebrow mb-2">Image understanding</p>
+                        <h3 className="text-[13.5px] font-semibold text-fg mb-2">What the AI sees in it</h3>
                         <p className="text-sm text-fg/90 whitespace-pre-wrap leading-relaxed">
                           {(data.metadata as any).image_understanding}
                         </p>
@@ -310,8 +318,8 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                     )}
                     {(data.metadata as any)?.composed_retrieval_text && (
                       <details className="text-xs">
-                        <summary className="cursor-pointer text-muted hover:text-fg font-mono uppercase tracking-wider2 text-3xs">
-                          Composed retrieval text
+                        <summary className="cursor-pointer text-fg/55 hover:text-fg text-[12px] font-medium">
+                          Search text (technical)
                         </summary>
                         <pre className="mt-2 text-xs text-fg/80 whitespace-pre-wrap bg-bg-muted rounded p-3 font-mono leading-relaxed">
                           {(data.metadata as any).composed_retrieval_text}
@@ -322,13 +330,13 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                 ) : (
                   /* Non-Instagram: original description field */
                   <section>
-                    <p className="eyebrow mb-2">Description</p>
+                    <h3 className="text-[13.5px] font-semibold text-fg mb-2">Description</h3>
                     {editing ? (
                       <textarea
                         value={draftDesc}
                         onChange={(e) => setDraftDesc(e.target.value)}
                         rows={10}
-                        className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm leading-relaxed focus:outline-none focus:border-accent focus:shadow-glow transition-shadow"
+                        className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-fg/20 focus:border-fg/30 transition-shadow"
                       />
                     ) : (
                       <p className="text-sm text-fg/90 whitespace-pre-wrap leading-relaxed">
@@ -344,13 +352,13 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                 {data.attributes && Object.keys(data.attributes).length > 0 && (
                   <section>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="eyebrow">Attributes</p>
+                      <h3 className="text-[13.5px] font-semibold text-fg">Details the AI found</h3>
                       <button
                         type="button"
                         onClick={() => setShowRaw((v) => !v)}
-                        className="font-mono text-3xs uppercase tracking-wider2 text-muted hover:text-fg"
+                        className="text-[12px] font-medium text-fg/55 hover:text-fg"
                       >
-                        {showRaw ? "Pretty view" : "Raw JSON"}
+                        {showRaw ? "Simple view" : "Technical view"}
                       </button>
                     </div>
                     {showRaw ? (
@@ -365,7 +373,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
 
                 {/* File facts */}
                 <section>
-                  <p className="eyebrow mb-2">File</p>
+                  <h3 className="text-[13.5px] font-semibold text-fg mb-2">File</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {data.mime_type && <Fact label="MIME" value={data.mime_type} />}
                     {data.bytes != null && <Fact label="Size" value={fmtBytes(data.bytes)} />}
@@ -390,7 +398,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                   data.source_frame_id ||
                   (data.metadata as any)?.source_url) && (
                   <section>
-                    <p className="eyebrow mb-2">Provenance</p>
+                    <h3 className="text-[13.5px] font-semibold text-fg mb-2">Where it came from</h3>
                     <div className="space-y-1.5 text-xs">
                       {(data.metadata as any)?.source_url && (
                         <p className="text-fg/90 break-all">
@@ -399,7 +407,7 @@ export function AssetDetailDrawer({ assetId, onClose, onChanged }: Props) {
                             href={(data.metadata as any).source_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-accent hover:underline"
+                            className="text-fg underline decoration-fg/30 underline-offset-2 hover:decoration-fg"
                           >
                             {(data.metadata as any).source_url}
                           </a>
@@ -435,18 +443,18 @@ function MiniStat({
   hint: string;
 }) {
   return (
-    <div className="card p-3">
-      <p className="eyebrow">{label}</p>
-      <p className="mt-1 text-base font-semibold text-fg tabular-nums">{value}</p>
-      {hint && <p className="font-mono text-3xs text-muted">{hint}</p>}
+    <div className="rounded-xl bg-k-inset ring-1 ring-fg/[0.07] px-3.5 py-3">
+      <p className="text-[12px] text-fg/55">{label}</p>
+      <p className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-fg tabular-nums">{value}</p>
+      {hint && <p className="text-[11.5px] text-fg/45">{hint}</p>}
     </div>
   );
 }
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-bg-muted px-3 py-2">
-      <dt className="font-mono text-3xs uppercase tracking-wider2 text-muted">{label}</dt>
+    <div className="rounded-lg bg-k-inset ring-1 ring-fg/[0.06] px-3 py-2">
+      <dt className="text-[11.5px] text-fg/50">{label}</dt>
       <dd className="text-fg/90 tabular-nums break-all">{value}</dd>
     </div>
   );
@@ -474,7 +482,7 @@ function AttrSection({ label, value }: { label: string; value: unknown }) {
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return (
       <div className="flex items-baseline gap-3 text-sm border-b border-border/60 pb-1.5 last:border-0">
-        <span className="font-mono text-3xs uppercase tracking-wider2 text-muted w-28 shrink-0">
+        <span className="text-[12.5px] text-fg/50 w-28 shrink-0 capitalize">
           {label}
         </span>
         <span className="text-fg/90">{String(value)}</span>
@@ -484,7 +492,7 @@ function AttrSection({ label, value }: { label: string; value: unknown }) {
   if (Array.isArray(value)) {
     return (
       <div className="text-sm border-b border-border/60 pb-1.5 last:border-0">
-        <p className="font-mono text-3xs uppercase tracking-wider2 text-muted">{label}</p>
+        <p className="text-[12.5px] text-fg/50 capitalize">{label}</p>
         <p className="text-fg/90 mt-0.5">
           {value.length === 0 ? <span className="text-muted italic">(none)</span> : value.map(String).join(", ")}
         </p>
@@ -495,12 +503,12 @@ function AttrSection({ label, value }: { label: string; value: unknown }) {
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj);
     return (
-      <div className="rounded-lg bg-bg-muted/60 border border-border p-3">
-        <p className="font-mono text-3xs uppercase tracking-wider2 text-fg mb-2">{label}</p>
+      <div className="rounded-xl bg-k-inset ring-1 ring-fg/[0.07] p-3">
+        <p className="text-[12.5px] font-semibold text-fg mb-2 capitalize">{label}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
           {keys.map((k) => (
             <div key={k} className="flex items-baseline gap-2">
-              <span className="font-mono text-3xs uppercase tracking-wider2 text-muted shrink-0">
+              <span className="text-[12.5px] text-fg/50 shrink-0 capitalize">
                 {k}
               </span>
               <span className="text-fg/90 break-words">

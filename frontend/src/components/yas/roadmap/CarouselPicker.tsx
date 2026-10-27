@@ -14,7 +14,7 @@ const TOOL_LABEL: Record<RoadmapTool, string> = {
   video_editor: "Video Editor",
   // Human characters are saved as Assets, not carousel-eligible posts; this entry
   // only satisfies the Record<RoadmapTool,…> completeness check.
-  human_character: "Human Character",
+  human_character: "AI-generated character",
   general_video: "General AI Video",
   broll: "B-roll",
 };

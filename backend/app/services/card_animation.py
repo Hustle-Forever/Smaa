@@ -68,7 +68,9 @@ GEMINI_PRO_LOCATION = config.vertex_image_pro_location
 # The white 42 Abu Dhabi logomark, baked into a card as an image part so the
 # model replicates the real mark instead of inventing one. Same file the poster
 # flow uses; canonical here so the two card pipelines share one definition.
-LOGO_PATH = (config.asset_root.parent / "branding" / "42_logo_white.png").resolve()
+# Shipped with the code, not on the data volume (see poster_pipeline.POSTER_LOGO_PATH).
+LOGO_PATH = (Path(__file__).resolve().parent.parent / "assets" / "branding"
+             / "42_logo_white.png")
 
 # The image-to-video negative prompt for animating a finished still card. Aliased
 # from the canonical poster-prompts definition so the animation tool and the

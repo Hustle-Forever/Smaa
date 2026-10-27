@@ -7,7 +7,7 @@ Two-stage, Midjourney-style pipeline:
             [TEXT TO RENDER] block. The concepts MUST diverge across explicit
             axes — this is what makes the 4 grid variants look genuinely
             different instead of four renders of one idea.
-  STAGE 2 — Gemini gemini-3-pro-image-preview renders each concept into a 1:1
+  STAGE 2 — Gemini gemini-3-pro-image renders each concept into a 1:1
             Instagram poster, with the 42 logo (+ optional reference images)
             sent as ordered image parts.
 

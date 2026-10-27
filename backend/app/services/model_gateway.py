@@ -215,7 +215,10 @@ async def _probe_gemini(model: str) -> tuple[bool, str]:
     try:
         from .vertex_client import gemini_text
 
-        await gemini_text("ok", max_tokens=8, thinking_budget=0, model=model)
+        # 128 is the smallest budget every agent model accepts: Gemini 2.5 Pro
+        # (the default) refuses 0 with a 400, which marked a working brain as
+        # "AI is offline" on the editor panel.
+        await gemini_text("ok", max_tokens=256, thinking_budget=128, model=model)
         return True, "reachable"
     except Exception as exc:  # noqa: BLE001
         return False, _short(exc)

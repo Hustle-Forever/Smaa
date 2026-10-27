@@ -39,6 +39,10 @@ export type TalkingHeadV2WithCardsProps = {
   outro_duration_sec: number;
   fade_sec: number;
   main_duration_sec?: number;
+  /** Frames (30 fps) of the main clip skipped at its head: its start moved
+   *  on the Rebrand timeline. Absent or 0: from its first frame. Its sound
+   *  is cut with it; main_duration_sec is what plays after it. */
+  main_trim_before_frames?: number;
   width?: number;
   height?: number;
 };
@@ -113,6 +117,11 @@ export const TalkingHeadV2WithCards: React.FC<TalkingHeadV2WithCardsProps> = (pr
   const introSrc = pickIntroSrc(props);
   const outroSrc = pickOutroSrc(props);
   const { main_video_path, fade_sec, main_duration_sec } = props;
+  // Only a positive whole frame count trims (undefined: the clip as ever).
+  // The length is main_duration_sec's already: calculateMetadata needs
+  // nothing from it.
+  const mainTrim = Math.round(props.main_trim_before_frames || 0);
+  const mainTrimBefore = mainTrim > 0 ? mainTrim : undefined;
   const introSec = introSrc
     ? Math.max(0.1, props.intro_duration_sec || DEFAULT_BOOKEND_SEC)
     : 0;
@@ -164,6 +173,7 @@ export const TalkingHeadV2WithCards: React.FC<TalkingHeadV2WithCardsProps> = (pr
           <AbsoluteFill>
             <OffthreadVideo
               src={main_video_path}
+              trimBefore={mainTrimBefore}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </AbsoluteFill>

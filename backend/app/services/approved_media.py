@@ -282,6 +282,13 @@ async def _resolve_media(tool: str, ref_id: int) -> tuple[bytes, str]:
         comp_rel = md.get("composition_path")
         if not comp_rel:
             raise FileNotFoundError(f"talking_head_v2 #{ref_id}: composition not ready")
+        # Background music on and made for this reel: the music version is
+        # what the Final step and Preview showed, so it is what is posted.
+        from . import th_reel_music
+
+        music = await th_reel_music.current_bytes(md)
+        if music is not None:
+            return music, "video/mp4"
         data = await _composition_bytes(
             f"talking_head_v2 #{ref_id}", th_v2._abs_from_rel(comp_rel),
             storage_bucket=md.get("composition_storage_bucket"),

@@ -216,6 +216,17 @@ def _no_shared_database_for_the_reel():
 
 
 @pytest.fixture(autouse=True)
+def _no_shared_database_for_the_reel_music():
+    """The same for the reel's background music (services/th_reel_music):
+    its store is an empty in-memory one unless a test sets its own."""
+    from app.services import th_reel_music
+
+    old = th_reel_music.set_store(th_reel_music.MemoryStore())
+    yield
+    th_reel_music.set_store(old)
+
+
+@pytest.fixture(autouse=True)
 def _no_shared_database_for_the_rebrand_memory(monkeypatch):
     """No test writes (or creates) yas_rebrand_choices, nor reads the shared
     database through the rebrand memory: a ready reel's snapshot (the

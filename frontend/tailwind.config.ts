@@ -5,7 +5,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        // Jost: a free Futura-style face. 42 Abu Dhabi's brand face is Futura PT.
         sans: [
+          '"Jost"',
+          '"Futura PT"',
           '"Inter"',
           'system-ui',
           '-apple-system',
@@ -33,27 +36,66 @@ export default {
         "2xs": "11px",
       },
       colors: {
-        // Surfaces — keeping the `bg.*` keys so existing classes don't break;
-        // tokens now point at the v1 white-on-near-black-text palette.
+        // The app-wide tokens every screen paints with. They read the 42 theme
+        // variables (styles.css), so 42 Dark / 42 Light reach every page, the
+        // ones nobody has redesigned included, without touching their code.
         bg: {
-          DEFAULT: "#FFFFFF",
-          subtle: "#FFFFFF",
-          muted: "#F2F2F4",
-          deep: "#FAFAF9",
+          DEFAULT: "rgb(var(--k-canvas) / <alpha-value>)",
+          subtle: "rgb(var(--k-surface) / <alpha-value>)",
+          muted: "rgb(var(--k-inset) / <alpha-value>)",
+          deep: "rgb(var(--k-inset) / <alpha-value>)",
         },
-        // Text
-        fg: "#0F1011",
-        muted: "#71717A",
-        // Borders
+        fg: "rgb(var(--k-text) / <alpha-value>)",
+        muted: "rgb(var(--k-muted) / <alpha-value>)",
         border: {
-          DEFAULT: "#E5E5E7",
-          strong: "#D4D4D8",
+          DEFAULT: "rgb(var(--k-border) / <alpha-value>)",
+          strong: "rgb(var(--k-border-strong) / <alpha-value>)",
         },
-        // Brand accent (v1 teal)
+        // Brand accent. A CSS variable (set in styles.css) rather than a fixed
+        // hex, so a redesigned area can re-point it without touching the ~250
+        // `*-accent` classes inside it: `.studio-ui` turns it to ink. Everywhere
+        // else it is still the v1 teal #06B6A2 / #048876, byte for byte.
         accent: {
-          DEFAULT: "#06B6A2",
-          hover: "#048876",
-          fade: "rgba(6,182,162,0.08)",
+          DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover-rgb) / <alpha-value>)",
+          fade: "rgb(var(--accent-rgb) / 0.08)",
+        },
+        // 42 Abu Dhabi brand, after 42abudhabi.ae: charcoal, white, cyan
+        // #00E5FC, purple #7100FE. Every value is a CSS variable set per theme
+        // (html[data-k="dark" | "light"], see styles.css), so one class works
+        // in both themes and keeps Tailwind's /opacity modifiers.
+        k: {
+          canvas: "rgb(var(--k-canvas) / <alpha-value>)",
+          surface: "rgb(var(--k-surface) / <alpha-value>)",
+          border: "rgb(var(--k-border) / <alpha-value>)",
+          "border-strong": "rgb(var(--k-border-strong) / <alpha-value>)",
+          muted: "rgb(var(--k-muted) / <alpha-value>)",
+          btn: "rgb(var(--k-btn) / <alpha-value>)",
+          onbtn: "rgb(var(--k-onbtn) / <alpha-value>)",
+          coral: "rgb(var(--k-coral) / <alpha-value>)",
+          inset: "rgb(var(--k-inset) / <alpha-value>)",
+          line: "rgb(var(--k-line) / <alpha-value>)",
+          text: "rgb(var(--k-text) / <alpha-value>)",
+          cyan: "rgb(var(--k-cyan) / <alpha-value>)",
+          oncyan: "rgb(var(--k-oncyan) / <alpha-value>)",
+          // Readable accent for TEXT and small icons: cyan on charcoal,
+          // purple on white (cyan on white is 1.4:1).
+          accent: "rgb(var(--k-accent) / <alpha-value>)",
+          purple: "rgb(var(--k-purple) / <alpha-value>)",
+          chart: "rgb(var(--k-chart) / <alpha-value>)",
+          danger: "rgb(var(--k-danger) / <alpha-value>)",
+          rail: "rgb(var(--k-rail) / <alpha-value>)",
+        },
+        // Institutional gold: the single accent of the redesigned (government
+        // office) surfaces, after the UAE Government Design System's gold.
+        // DEFAULT is for marks and fills; `ink` is the text-safe shade (5:1 on
+        // white); `soft` is a tinted background.
+        gold: {
+          // Was institutional gold; now the 42 cyan (marks) and the theme's
+          // readable accent (text), so older classes follow the brand.
+          DEFAULT: "rgb(var(--k-cyan) / <alpha-value>)",
+          ink: "rgb(var(--k-accent) / <alpha-value>)",
+          soft: "rgb(var(--k-cyan) / 0.14)",
         },
         // Semantics
         success: "#10B981",
@@ -66,8 +108,19 @@ export default {
           failed: "rgba(239,68,68,0.08)",
         },
       },
+      // 42abudhabi.ae is square: 441 of 444 elements measured at 0px radius.
+      // The whole scale collapses to hairline corners; `full` stays round for
+      // avatars, status dots and progress rings.
       borderRadius: {
-        DEFAULT: "0.5rem",
+        none: "0",
+        sm: "1px",
+        DEFAULT: "2px",
+        md: "2px",
+        lg: "2px",
+        xl: "3px",
+        "2xl": "3px",
+        "3xl": "4px",
+        full: "9999px",
       },
       boxShadow: {
         soft: "0 1px 2px rgba(24,24,27,0.04), 0 0 0 1px rgba(24,24,27,0.04)",
@@ -137,6 +190,12 @@ export default {
           "0%": { transform: "scale(1)", opacity: "0.5" },
           "75%, 100%": { transform: "scale(2)", opacity: "0" },
         },
+        // Dashboard chart: the line draws itself left to right. Needs the path
+        // to carry pathLength={1} and strokeDasharray={1}.
+        drawLine: {
+          "0%": { strokeDashoffset: "1" },
+          "100%": { strokeDashoffset: "0" },
+        },
         // Expanding rings behind the sign-in screen's brand mark.
         haloPulse: {
           "0%": { transform: "scale(0.85)", opacity: "0.45" },
@@ -157,6 +216,9 @@ export default {
         indeterminate: "indeterminate 1.5s ease-in-out infinite",
         sheen: "sheen 1.5s ease-in-out infinite",
         haloPulse: "haloPulse 3s cubic-bezier(0.16, 1, 0.3, 1) infinite backwards",
+        drawLine: "drawLine 1400ms cubic-bezier(0.65, 0, 0.35, 1) both",
+        // Slower, softer section entrance for the Dashboard's staggered reveal.
+        reveal: "riseFade 600ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },

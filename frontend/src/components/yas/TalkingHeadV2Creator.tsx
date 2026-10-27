@@ -85,6 +85,7 @@ import {
   type StillAction,
 } from "../../lib/thStill";
 import { shortcutFires, videosAction, videosStaleNote } from "../../lib/thVideos";
+import { musicBusy } from "../../lib/thMusic";
 import { api } from "../../lib/api";
 import { isShown } from "../../lib/isShown";
 import { prefetchAssetImages } from "../../lib/prefetchAssets";
@@ -107,6 +108,7 @@ import type {
 import { landingStage as landingOf, parseRebrandStep, rebrandStep, stageOfStep } from "../../lib/rebrandStage";
 import { AssetPickerModal } from "./AssetPickerModal";
 import { EnhanceButton } from "./EnhanceButton";
+import { TalkingHeadV2MusicPanel } from "./TalkingHeadV2MusicPanel";
 import { RebrandStage } from "./rebrand-stage/RebrandStage";
 import type { ContinueToPreview } from "./roadmap/types";
 import { SceneRow } from "./SceneRow";
@@ -639,6 +641,23 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
     }, 5000);
     return clear;
   }, [run?.id, phase]);
+
+  // Background music (Final): a poll of its own while Suno composes the track
+  // or the server lays it under the reel — the reel's poll above stops once
+  // the reel is ready, and its phase moves stay its own.
+  const musicPolling = musicBusy(run?.music);
+  useEffect(() => {
+    if (!run || !musicPolling) return;
+    const t = window.setInterval(async () => {
+      try {
+        setRun(await api.yasProducer.talkingHeadV2.fetch(run.id));
+      } catch (e: any) {
+        console.warn("[talking-head] music poll failed", e);
+      }
+    }, 5000);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.id, musicPolling]);
 
   // Mirror the live run id to the URL the moment a run exists (script written,
   // or resume) so a hard refresh restores the run AND its stage — the resume
@@ -1640,6 +1659,9 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
   const animations = run?.animations;
   const compositionUrl = run?.composition_url;
   const compositionStatus = run?.composition_status;
+  // With music switched on, Final shows (and Continue hands on) the reel's
+  // music version; otherwise the reel itself.
+  const musicUrl = run?.music?.music_url ?? null;
   // v6 — scene count + scenes array. Always derived from the run; never
   // less than 1 (even if a legacy payload is missing the field).
   const runSceneCount = Math.max(1, run?.scene_count ?? 1);
@@ -2655,8 +2677,8 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
                 {compositionUrl && (hasRebrand || compositionStatus === "ready") ? (
                   <>
                     <video
-                      key={compositionUrl}
-                      src={compositionUrl}
+                      key={musicUrl ?? compositionUrl}
+                      src={musicUrl ?? compositionUrl}
                       controls
                       playsInline
                       className="rounded-xl bg-black shadow-lift"
@@ -2712,6 +2734,9 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
                     </button>
                   </div>
                 )}
+                {compositionStatus === "ready" && run && compositionUrl && (
+                  <TalkingHeadV2MusicPanel run={run} onRun={setRun} />
+                )}
                 {compositionStatus === "ready" && (
                   <>
                     <button
@@ -2730,7 +2755,10 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
                           onContinue({
                             refId: run.id,
                             mediaType: "video",
-                            mediaUrl: api.yasProducer.talkingHeadV2.compositionFileUrl(run.id, run.composition_good_seq),
+                            // What Final shows: the music version when it is on.
+                            mediaUrl: musicUrl
+                              ? api.yasProducer.talkingHeadV2.musicFileUrl(run.id, run.composition_good_seq, run.music?.mix_id)
+                              : api.yasProducer.talkingHeadV2.compositionFileUrl(run.id, run.composition_good_seq),
                             topic: run.topic || topic || "",
                           })
                         }
@@ -2741,7 +2769,7 @@ export function TalkingHeadV2Creator({ onBack, initialRunId = null, navigate, on
                       </button>
                     )}
                     <p className="text-2xs text-muted">
-                      Final composition · {videoAspect}
+                      Final composition · {videoAspect}{musicUrl ? " · with music" : ""}
                     </p>
                   </>
                 )}

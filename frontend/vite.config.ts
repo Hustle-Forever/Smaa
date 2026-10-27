@@ -24,6 +24,15 @@ function apiPort(): string {
   return "8000";
 }
 
+/**
+ * Optional: read a deployed studio instead of the local backend, e.g.
+ *   API_TARGET=https://api.42studio.fit PORT=4243 npm run dev
+ * so a UI change can be reviewed against real data. Sign in on the page as
+ * usual: the session cookie has no domain, so it lands on this dev server.
+ * Careful: every button then acts on that deployment.
+ */
+const API_TARGET = process.env.API_TARGET?.replace(/\/$/, "");
+
 // The Video Editor shares its Remotion composition with the compose service so
 // the in-browser <Player> preview renders the EXACT same component the server
 // exports (WYSIWYG). These aliases let the frontend import that file (which
@@ -57,7 +66,7 @@ export default defineConfig({
   },
   server: {
     host: "127.0.0.1",
-    port: 4242,
+    port: Number(process.env.PORT) || 4242,
     strictPort: true,
     // Let a Cloudflare quick tunnel (`cloudflared tunnel --url http://localhost:4242`)
     // reach the dev server — Vite otherwise rejects the *.trycloudflare.com Host
@@ -76,8 +85,10 @@ export default defineConfig({
       // works without CORS gymnastics. Both `/api/*` and the SSE streams
       // share this proxy.
       "/api": {
-        target: `http://127.0.0.1:${apiPort()}`,
-        changeOrigin: false,
+        target: API_TARGET || `http://127.0.0.1:${apiPort()}`,
+        // A remote target checks the Host header; the local one never did.
+        changeOrigin: !!API_TARGET,
+        secure: true,
         ws: false,
         timeout: 300000, // 5 min — covers slow Gemini Pro / OpenAI quality=high
       },
